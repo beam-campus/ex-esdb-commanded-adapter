@@ -1,0 +1,54 @@
+## IDE
+.idea/
+.vscode/
+.elixir_ls/
+.history/
+.lexical/
+.elixir-tools/
+.obsidian/
+tmp/
+
+
+## Elixir
+/_build
+/cover
+/deps
+/.fetch
+/tmp
+/system/tmp
+/system/doc
+
+
+erl_crash.dump
+*.ez
+*.beam
+apis-*.tar.gz
+*.tar
+
+
+/config/*.secret.exs
+.elixir_ls/
+
+
+## Erlang
+.eunit
+*.o
+*.beam
+*.plt
+erl_crash.dump
+.concrete/DEV_MODE
+
+# rebar 2.x
+.rebar
+rel/example_project
+ebin/*.beam
+deps
+
+# rebar 3
+.rebar3
+_build/
+_checkouts/
+
+
+
+
