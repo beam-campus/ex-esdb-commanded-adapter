@@ -1,61 +1,64 @@
 defmodule RegulateGreenhouse.Infrastructure.Supervisor do
   @moduledoc """
   Supervisor for all infrastructure components that provide reliability and resilience.
-  
+
   This supervisor manages:
   - Circuit breakers
   - Event deduplicator
   - Subscription manager
   - Health checker
   """
-  
+
   use Supervisor
   require Logger
-  
-  alias RegulateGreenhouse.Infrastructure.{
-    CircuitBreaker,
-    EventDeduplicator,
-    SubscriptionManager,
-    HealthChecker
-  }
-  
+
+  alias RegulateGreenhouse.Infrastructure.CircuitBreaker
+  alias RegulateGreenhouse.Infrastructure.EventDeduplicator
+  alias RegulateGreenhouse.Infrastructure.HealthChecker
+  alias RegulateGreenhouse.Infrastructure.SubscriptionManager
+
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
-  
+
   @impl true
   def init(_opts) do
     Logger.info("Infrastructure.Supervisor: Starting reliability infrastructure")
-    
+
     children = [
       # Start event deduplicator first
       {EventDeduplicator, []},
-      
+
       # Start circuit breakers
-      {CircuitBreaker, [
-        name: :greenhouse_projection_circuit_breaker,
-        config: %{
-          failure_threshold: 5,
-          recovery_timeout: 60_000,  # 1 minute
-          reset_timeout: 30_000      # 30 seconds
-        }
-      ]},
-      
+      {CircuitBreaker,
+       [
+         name: :greenhouse_projection_circuit_breaker,
+         config: %{
+           failure_threshold: 5,
+           # 1 minute
+           recovery_timeout: 60_000,
+           # 30 seconds
+           reset_timeout: 30_000
+         }
+       ]},
+
       # Start subscription manager
-      {SubscriptionManager, [
-        monitor_interval: :timer.seconds(30),
-        max_restart_attempts: 5
-      ]},
-      
+      {SubscriptionManager,
+       [
+         monitor_interval: :timer.seconds(30),
+         max_restart_attempts: 5
+       ]},
+
       # Start health checker last
-      {HealthChecker, [
-        check_interval: :timer.minutes(1)
-      ]}
+      {HealthChecker,
+       [
+         check_interval: :timer.minutes(1)
+       ]}
     ]
-    
+
     Supervisor.init(children, strategy: :one_for_one)
   end
-  
+
   @doc """
   Register all event-type projections for monitoring.
   """
@@ -67,28 +70,37 @@ defmodule RegulateGreenhouse.Infrastructure.Supervisor do
           case status do
             {:running, pid: pid} ->
               restart_fun = fn ->
-                RegulateGreenhouse.Projections.EventTypeProjectionManager.restart_projection(event_type)
+                RegulateGreenhouse.Projections.EventTypeProjectionManager.restart_projection(
+                  event_type
+                )
               end
-              
+
               SubscriptionManager.register_subscription(
                 "#{event_type}_projection",
                 pid,
                 restart_fun
               )
-              Logger.info("Infrastructure.Supervisor: Registered #{event_type} projection for monitoring")
-            
+
+              Logger.info(
+                "Infrastructure.Supervisor: Registered #{event_type} projection for monitoring"
+              )
+
             :not_running ->
               Logger.warning("Infrastructure.Supervisor: #{event_type} projection not running")
           end
         end)
+
         :ok
-      
+
       error ->
-        Logger.error("Infrastructure.Supervisor: Failed to get projection status: #{inspect(error)}")
+        Logger.error(
+          "Infrastructure.Supervisor: Failed to get projection status: #{inspect(error)}"
+        )
+
         error
     end
   end
-  
+
   def child_spec(opts) do
     %{
       id: __MODULE__,

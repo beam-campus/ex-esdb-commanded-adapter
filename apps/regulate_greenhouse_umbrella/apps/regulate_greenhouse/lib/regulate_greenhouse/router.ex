@@ -7,6 +7,8 @@ defmodule RegulateGreenhouse.Router do
   """
 
   use Commanded.Commands.Router
+  
+  middleware(RegulateGreenhouse.Middleware.LoggingMiddleware)
 
   alias RegulateGreenhouse.Greenhouse
   alias RegulateGreenhouse.Commands.{

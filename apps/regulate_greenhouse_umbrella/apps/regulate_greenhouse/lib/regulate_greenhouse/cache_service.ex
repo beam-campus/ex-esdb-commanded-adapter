@@ -1,14 +1,14 @@
 defmodule RegulateGreenhouse.CacheService do
   @moduledoc """
   Service for managing greenhouse read model caches using Cachex.
-  
+
   This service provides a clean interface for interacting with
   cached greenhouse read models and handles unexpected ExESDB messages.
   """
 
   use GenServer
   alias RegulateGreenhouse.ReadModels.GreenhouseReadModel
-
+  require Logger
   @cache_name :greenhouse_read_models
 
   @doc """
@@ -31,11 +31,13 @@ defmodule RegulateGreenhouse.CacheService do
   def init(_opts) do
     # Start Cachex cache for greenhouse read models
     case Cachex.start(@cache_name) do
-      {:ok, _pid} -> 
+      {:ok, _pid} ->
         {:ok, %{}}
-      {:error, {:already_started, _pid}} -> 
+
+      {:error, {:already_started, _pid}} ->
         {:ok, %{}}
-      error -> 
+
+      error ->
         {:stop, error}
     end
   end
@@ -58,10 +60,20 @@ defmodule RegulateGreenhouse.CacheService do
   """
   @spec get_greenhouse(String.t()) :: {:ok, GreenhouseReadModel.t() | nil} | {:error, term()}
   def get_greenhouse(greenhouse_id) do
+    #    Logger.info("CacheService: Retrieving greenhouse #{greenhouse_id}")
+
     case Cachex.get(@cache_name, greenhouse_id) do
-      {:ok, nil} -> {:ok, nil}
-      {:ok, read_model} -> {:ok, read_model}
-      {:error, _reason} = error -> error
+      {:ok, nil} ->
+        #        Logger.info("CacheService: No greenhouse found with ID #{greenhouse_id}")
+        {:ok, nil}
+
+      {:ok, read_model} ->
+        #        Logger.info("CacheService: Found greenhouse read model for ID #{greenhouse_id}")
+        {:ok, read_model}
+
+      {:error, reason} = error ->
+        # Logger.error("CacheService: Error retrieving greenhouse #{greenhouse_id}: #{inspect(reason)}")
+        error
     end
   end
 
@@ -114,10 +126,14 @@ defmodule RegulateGreenhouse.CacheService do
   @spec average_temperature() :: float()
   def average_temperature do
     greenhouses = list_greenhouses()
-    active_greenhouses = Enum.filter(greenhouses, &(&1.current_temperature && &1.current_temperature > 0))
-    
+
+    active_greenhouses =
+      Enum.filter(greenhouses, &(&1.current_temperature && &1.current_temperature > 0))
+
     case active_greenhouses do
-      [] -> 0.0
+      [] ->
+        0.0
+
       greenhouses ->
         total = Enum.sum(Enum.map(greenhouses, & &1.current_temperature))
         Float.round(total / length(greenhouses), 1)

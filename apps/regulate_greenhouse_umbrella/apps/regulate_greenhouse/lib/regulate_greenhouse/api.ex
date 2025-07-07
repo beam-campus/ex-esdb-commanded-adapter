@@ -33,7 +33,7 @@ defmodule RegulateGreenhouse.API do
       target_humidity: target_humidity
     }
 
-    case CommandedApp.dispatch(command) do
+    case CommandedApp.dispatch_command(command) do
       :ok -> :ok
       error ->
         Logger.error("API: Failed to dispatch CreateGreenhouse for #{greenhouse_id}: #{inspect(error)}")
@@ -73,13 +73,23 @@ defmodule RegulateGreenhouse.API do
   """
   @spec set_temperature(String.t(), float(), String.t() | nil) :: :ok | {:error, term()}
   def set_temperature(greenhouse_id, target_temperature, set_by \\ nil) do
+    require Logger
+    Logger.info("API: Setting temperature for #{greenhouse_id} to #{target_temperature}°C (set_by: #{set_by})")
+    
     command = %SetTemperature{
       greenhouse_id: greenhouse_id,
       target_temperature: target_temperature,
       set_by: set_by
     }
 
-    CommandedApp.dispatch(command)
+    case CommandedApp.dispatch_command(command) do
+      :ok ->
+        Logger.info("API: Successfully set temperature for #{greenhouse_id}")
+        :ok
+      error -> 
+        Logger.error("API: Failed to set temperature for #{greenhouse_id}: #{inspect(error)}")
+        error
+    end
   end
 
   @doc """
@@ -95,13 +105,23 @@ defmodule RegulateGreenhouse.API do
   """
   @spec set_humidity(String.t(), float(), String.t() | nil) :: :ok | {:error, term()}
   def set_humidity(greenhouse_id, target_humidity, set_by \\ nil) do
+    require Logger
+    Logger.info("API: Setting humidity for #{greenhouse_id} to #{target_humidity}% (set_by: #{set_by})")
+    
     command = %SetHumidity{
       greenhouse_id: greenhouse_id,
       target_humidity: target_humidity,
       set_by: set_by
     }
 
-    CommandedApp.dispatch(command)
+    case CommandedApp.dispatch_command(command) do
+      :ok -> 
+        Logger.info("API: Successfully set humidity for #{greenhouse_id}")
+        :ok
+      error -> 
+        Logger.error("API: Failed to set humidity for #{greenhouse_id}: #{inspect(error)}")
+        error
+    end
   end
 
   @doc """
@@ -117,12 +137,22 @@ defmodule RegulateGreenhouse.API do
   """
   @spec set_desired_light(String.t(), float()) :: :ok | {:error, term()}
   def set_desired_light(greenhouse_id, light) do
+    require Logger
+    Logger.info("API: Setting light for #{greenhouse_id} to #{light} lumens")
+    
     command = %SetLight{
       greenhouse_id: greenhouse_id,
       target_light: light
     }
 
-    CommandedApp.dispatch(command)
+    case CommandedApp.dispatch_command(command) do
+      :ok -> 
+        Logger.info("API: Successfully set light for #{greenhouse_id}")
+        :ok
+      error -> 
+        Logger.error("API: Failed to set light for #{greenhouse_id}: #{inspect(error)}")
+        error
+    end
   end
 
   @doc """
@@ -130,6 +160,8 @@ defmodule RegulateGreenhouse.API do
   """
   @spec measure_temperature(String.t(), float()) :: :ok | {:error, term()}
   def measure_temperature(greenhouse_id, temperature) do
+    require Logger
+    Logger.info("API: Recording temperature measurement for #{greenhouse_id}: #{temperature}°C")
     
     command = %MeasureTemperature{
       greenhouse_id: greenhouse_id,
@@ -137,7 +169,14 @@ defmodule RegulateGreenhouse.API do
       measured_at: DateTime.utc_now()
     }
 
-    CommandedApp.dispatch(command)
+    case CommandedApp.dispatch_command(command) do
+      :ok -> 
+        Logger.info("API: Successfully recorded temperature measurement for #{greenhouse_id}")
+        :ok
+      error -> 
+        Logger.error("API: Failed to record temperature measurement for #{greenhouse_id}: #{inspect(error)}")
+        error
+    end
   end
 
   @doc """
@@ -145,13 +184,23 @@ defmodule RegulateGreenhouse.API do
   """
   @spec measure_humidity(String.t(), float()) :: :ok | {:error, term()}
   def measure_humidity(greenhouse_id, humidity) do
+    require Logger
+    Logger.info("API: Recording humidity measurement for #{greenhouse_id}: #{humidity}%")
+    
     command = %MeasureHumidity{
       greenhouse_id: greenhouse_id,
       humidity: humidity,
       measured_at: DateTime.utc_now()
     }
 
-    CommandedApp.dispatch(command)
+    case CommandedApp.dispatch_command(command) do
+      :ok ->
+        Logger.info("API: Successfully recorded humidity measurement for #{greenhouse_id}")
+        :ok
+      error ->
+        Logger.error("API: Failed to record humidity measurement for #{greenhouse_id}: #{inspect(error)}")
+        error
+    end
   end
 
   @doc """
@@ -159,13 +208,23 @@ defmodule RegulateGreenhouse.API do
   """
   @spec measure_light(String.t(), float()) :: :ok | {:error, term()}
   def measure_light(greenhouse_id, light) do
+    require Logger
+    Logger.info("API: Recording light measurement for #{greenhouse_id}: #{light} lumens")
+    
     command = %MeasureLight{
       greenhouse_id: greenhouse_id,
       light: light,
       measured_at: DateTime.utc_now()
     }
 
-    CommandedApp.dispatch(command)
+    case CommandedApp.dispatch_command(command) do
+      :ok ->
+        Logger.info("API: Successfully recorded light measurement for #{greenhouse_id}")
+        :ok
+      error ->
+        Logger.error("API: Failed to record light measurement for #{greenhouse_id}: #{inspect(error)}")
+        error
+    end
   end
 
   @doc """

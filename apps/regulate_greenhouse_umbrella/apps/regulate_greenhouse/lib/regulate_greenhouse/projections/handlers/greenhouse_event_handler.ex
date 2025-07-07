@@ -16,9 +16,12 @@ defmodule RegulateGreenhouse.Projections.Handlers.GreenhouseEventHandler do
   Handle a greenhouse-related event for a specific greenhouse.
   """
   def handle_event(%{data: data, event_type: "initialized:v1"}, greenhouse_id) do
+    Logger.info("GreenhouseEventHandler: Processing initialized:v1 event for greenhouse #{greenhouse_id}")
+    Logger.debug("GreenhouseEventHandler: Event data: #{inspect(data)}")
     
     # Deserialize the event data
     event = struct(GreenhouseCreated, atomize_keys(data))
+    Logger.debug("GreenhouseEventHandler: Deserialized event: #{inspect(event)}")
     
     read_model = %GreenhouseReadModel{
       greenhouse_id: event.greenhouse_id,
@@ -37,9 +40,12 @@ defmodule RegulateGreenhouse.Projections.Handlers.GreenhouseEventHandler do
     
     # Calculate status and store in cache
     read_model = %{read_model | status: GreenhouseReadModel.calculate_status(read_model)}
+    Logger.info("GreenhouseEventHandler: Created read model for #{greenhouse_id}: #{inspect(read_model)}")
     
     case Cachex.put(@cache_name, greenhouse_id, read_model) do
-      {:ok, true} -> :ok
+      {:ok, true} -> 
+        Logger.info("GreenhouseEventHandler: Successfully cached greenhouse #{greenhouse_id}")
+        :ok
       error ->
         Logger.error("GreenhouseEventHandler: Failed to cache greenhouse #{greenhouse_id}: #{inspect(error)}")
         raise "Cache operation failed: #{inspect(error)}"

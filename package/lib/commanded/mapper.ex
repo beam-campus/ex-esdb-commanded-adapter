@@ -26,8 +26,8 @@ defmodule ExESDB.Commanded.Mapper do
         data: event_data.data,
         metadata: %{
           correlation_id: event_data.correlation_id,
-          causation_id: event_data.causation_id,
-          stream_version: nil
+          causation_id: event_data.causation_id
+          # Don't include stream_version in NewEvent metadata - it will be set by ExESDB
         }
       }
 
@@ -44,19 +44,56 @@ defmodule ExESDB.Commanded.Mapper do
           }
         } = event_record
       )
-      when is_struct(event_record, EventRecord),
-      do: %RecordedEvent{
-        event_id: event_record.event_id,
-        event_number: event_record.event_number,
-        event_type: event_record.event_type,
-        data: event_record.data,
-        metadata: event_record.metadata,
-        created_at: event_record.created,
-        stream_id: event_record.event_stream_id,
-        stream_version: stream_version,
-        correlation_id: correlation_id,
-        causation_id: causation_id
-      }
+      when is_struct(event_record, EventRecord) do
+        # Convert ExESDB 0-based stream_version to Commanded 1-based
+        commanded_stream_version = case stream_version do
+          version when is_integer(version) and version >= 0 -> version + 1
+          version -> version
+        end
+        
+        %RecordedEvent{
+          event_id: event_record.event_id,
+          event_number: event_record.event_number,
+          event_type: map_readable_to_event_type(event_record.event_type),
+          data: event_record.data,
+          metadata: event_record.metadata,
+          created_at: event_record.created,
+          stream_id: event_record.event_stream_id,
+          stream_version: commanded_stream_version,
+          correlation_id: correlation_id,
+          causation_id: causation_id
+        }
+      end
+
+  # Fallback clause for events without properly structured metadata
+  def to_recorded_event(%EventRecord{} = event_record) do
+    # Extract metadata safely
+    metadata = event_record.metadata || %{}
+    
+    # Use event_number as stream_version if not properly set, then convert to Commanded 1-based
+    stream_version = case Map.get(metadata, :stream_version) do
+      version when is_integer(version) and version >= 0 -> version + 1  # Convert 0-based to 1-based
+      _ -> 
+        # Use event_number as fallback and convert to 1-based
+        case event_record.event_number do
+          num when is_integer(num) and num >= 0 -> num + 1
+          num -> num
+        end
+    end
+    
+    %RecordedEvent{
+      event_id: event_record.event_id,
+      event_number: event_record.event_number,
+      event_type: map_readable_to_event_type(event_record.event_type),
+      data: event_record.data,
+      metadata: metadata,
+      created_at: event_record.created,
+      stream_id: event_record.event_stream_id,
+      stream_version: stream_version,
+      correlation_id: Map.get(metadata, :correlation_id),
+      causation_id: Map.get(metadata, :causation_id)
+    }
+  end
 
   @doc """
     Converts a Commanded SnapshotData struct to an ExESDB.Schema.SnapshotRecord struct.
@@ -104,5 +141,17 @@ defmodule ExESDB.Commanded.Mapper do
   """
   defp map_event_type_to_readable(event_type) do
     Map.get(@event_type_mappings, event_type, event_type)
+  end
+  
+  @doc """
+    Maps readable, versioned names back to Commanded event type names.
+  """
+  defp map_readable_to_event_type(readable_type) do
+    # Create reverse mapping
+    reverse_mappings = @event_type_mappings
+    |> Enum.map(fn {k, v} -> {v, k} end)
+    |> Map.new()
+    
+    Map.get(reverse_mappings, readable_type, readable_type)
   end
 end
