@@ -49,7 +49,6 @@ defmodule ExESDB.Commanded.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application,
     do: [
-      mod: {ExESDB.Commanded.App, []},
       extra_applications:
         [
           :logger,
@@ -93,8 +92,10 @@ defmodule ExESDB.Commanded.MixProject do
       {:eunit_formatters, "~> 0.5", only: [:test], runtime: false},
       {:mox, "~> 1.0", only: [:test], runtime: false},
       {:jason, "~> 1.4", optional: true},
-      {:commanded, "~> 1.4"},
-      {:ex_esdb_gater, "~> 0.0.6"}
+      {:uuidv7, "~> 1.0"},
+      {:elixir_uuid, "~> 1.2"},
+      {:commanded, "~> 1.4.8"},
+      {:ex_esdb_gater, path: "../../ex-esdb-gater/system/", override: true}
     ]
   end
 

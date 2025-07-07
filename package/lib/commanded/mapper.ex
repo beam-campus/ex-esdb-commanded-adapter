@@ -20,7 +20,7 @@ defmodule ExESDB.Commanded.Mapper do
       when is_struct(event_data, EventData),
       do: %NewEvent{
         event_id: UUIDv7.generate(),
-        event_type: event_data.event_type,
+        event_type: map_event_type_to_readable(event_data.event_type),
         data_content_type: 1,
         metadata_content_type: 1,
         data: event_data.data,
@@ -87,4 +87,22 @@ defmodule ExESDB.Commanded.Mapper do
         metadata: snapshot_record.metadata,
         created_at: snapshot_record.created_at
       }
+
+  # Event type mappings - from Commanded event type names to readable versions
+  @event_type_mappings %{
+    "Elixir.RegulateGreenhouse.Events.GreenhouseCreated" => "initialized:v1",
+    "Elixir.RegulateGreenhouse.Events.TemperatureSet" => "desired_temperature_set:v1",
+    "Elixir.RegulateGreenhouse.Events.TemperatureMeasured" => "temperature_measured:v1",
+    "Elixir.RegulateGreenhouse.Events.HumiditySet" => "desired_humidity_set:v1",
+    "Elixir.RegulateGreenhouse.Events.HumidityMeasured" => "humidity_measured:v1",
+    "Elixir.RegulateGreenhouse.Events.LightSet" => "desired_light_set:v1",
+    "Elixir.RegulateGreenhouse.Events.LightMeasured" => "light_measured:v1"
+  }
+
+  @doc """
+    Maps Commanded event type names to readable, versioned names.
+  """
+  defp map_event_type_to_readable(event_type) do
+    Map.get(@event_type_mappings, event_type, event_type)
+  end
 end
