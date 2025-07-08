@@ -8,6 +8,10 @@ defmodule ExESDB.Commanded.Adapter do
   require Logger
 
   alias ExESDBGater.API
+
+  alias ExESDB.Commanded.Adapter.{StreamHelper, SubscriptionProxy, SubscriptionProxySupervisor}
+  alias ExESDB.Commanded.AggregateListenerSupervisor
+
   alias ExESDB.Commanded.Mapper
 
   @type adapter_meta :: map()
@@ -22,8 +26,26 @@ defmodule ExESDB.Commanded.Adapter do
   @type source_uuid :: String.t()
   @type error :: term
 
-  defp store_id(meta), do: Map.get(meta, :store_id, :ex_esdb)
-  defp stream_prefix(meta), do: Map.get(meta, :stream_prefix, "")
+  # Delegate to StreamHelper for cleaner organization
+  defp store_id(meta), do: StreamHelper.store_id(meta)
+  defp stream_prefix(meta), do: StreamHelper.stream_prefix(meta)
+
+  # Get PubSub name from ExESDB configuration
+  defp pubsub_name do
+    # First try to get from ex_esdb_gater configuration
+    case Application.get_env(:ex_esdb_gater, :api, []) do
+      config when is_list(config) ->
+        Keyword.get(config, :pub_sub, :ex_esdb_pubsub)
+
+      _ ->
+        # Fallback to ex_esdb configuration
+        case Application.get_env(:ex_esdb, :pub_sub) do
+          # Default fallback
+          nil -> :ex_esdb_pubsub
+          pubsub -> pubsub
+        end
+    end
+  end
 
   @spec ack_event(
           meta :: adapter_meta(),
@@ -31,23 +53,24 @@ defmodule ExESDB.Commanded.Adapter do
           event :: Commanded.EventStore.RecordedEvent.t()
         ) :: :ok | {:error, error()}
   @impl Commanded.EventStore.Adapter
-  def ack_event(meta, subscription, event) do
-    store = store_id(meta)
-
-    # Note: ExESDBGater.API.ack_event expects (store, subscription_name, subscriber_pid, event)
-    # We'll extract these from the subscription data structure
+  def ack_event(_meta, subscription, _event) do
+    # Handle different subscription formats
     case subscription do
-      %{name: subscription_name, subscriber: subscriber_pid} ->
-        store
-        |> API.ack_event(subscription_name, subscriber_pid, event)
+      %{name: _subscription_name, subscriber: _subscriber_pid} ->
+        # Legacy format - could ack to ExESDB if needed
+        # For now, just return :ok since events are already processed
+        :ok
 
+      proxy_pid when is_pid(proxy_pid) ->
+        # For proxy-based subscriptions, we don't need to ack to ExESDB
+        # since the proxy handles the conversion and ExESDB doesn't require
+        # explicit acknowledgment for the events we're consuming.
+        # The acknowledgment in Commanded is just for flow control.
         :ok
 
       _ ->
-        Logger.warning(
-          "Unable to ack event - invalid subscription format: #{inspect(subscription)}"
-        )
-
+        # Unknown format, but don't warn as this might be expected
+        # in some configurations
         :ok
     end
   end
@@ -69,15 +92,36 @@ defmodule ExESDB.Commanded.Adapter do
     prefix = stream_prefix(adapter_meta)
     full_stream_id = prefix <> stream_uuid
 
+    # Normalize expected version for ExESDB 0-based indexing
+    normalized_expected_version = StreamHelper.normalize_expected_version(expected_version)
+
     # Convert Commanded events to ExESDB format
     new_events = Enum.map(events, &Mapper.to_new_event/1)
 
-    # Note: ExESDBGater.API.append_events expects (store, stream_id, events)
-    # We'll need to handle expected_version separately since the API doesn't seem to support it directly
+    Logger.info("ADAPTER: Appending #{length(new_events)} events to stream #{full_stream_id}")
+
+    Logger.info(
+      "ADAPTER: Expected version: #{inspect(expected_version)} -> #{inspect(normalized_expected_version)}"
+    )
+
+    # Log event details for debugging
+    Enum.each(new_events, fn event ->
+      Logger.info("ADAPTER: Event type: #{event.event_type}, ID: #{event.event_id}")
+    end)
+
+    # Use normalized expected version
     case store
-         |> API.append_events(full_stream_id, expected_version, new_events) do
-      {:ok, _new_version} -> :ok
-      {:error, reason} -> {:error, reason}
+         |> API.append_events(full_stream_id, normalized_expected_version, new_events) do
+      {:ok, new_version} ->
+        Logger.info(
+          "ADAPTER: Successfully appended events to #{full_stream_id}, new version: #{new_version}"
+        )
+
+        :ok
+
+      {:error, reason} ->
+        Logger.error("ADAPTER: Failed to append events to #{full_stream_id}: #{inspect(reason)}")
+        StreamHelper.map_error(reason)
     end
   end
 
@@ -102,9 +146,11 @@ defmodule ExESDB.Commanded.Adapter do
       application: application
     }
 
-    # ExESDB Gater is expected to be running as a separate system
-    # So we don't need to start additional children here
-    child_specs = []
+    # Start supervisors for managing subscriptions
+    child_specs = [
+      {AggregateListenerSupervisor, []},
+      {SubscriptionProxySupervisor, []}
+    ]
 
     {:ok, child_specs, adapter_meta}
   end
@@ -136,7 +182,7 @@ defmodule ExESDB.Commanded.Adapter do
   """
   @spec delete_subscription(
           adapter_meta :: adapter_meta,
-          selector :: stream_uuid | :all,
+          selector :: stream_uuid | String.t(),
           subscription_name :: subscription_name
         ) :: :ok | {:error, error}
   @impl Commanded.EventStore.Adapter
@@ -144,12 +190,7 @@ defmodule ExESDB.Commanded.Adapter do
     store = store_id(adapter_meta)
     prefix = stream_prefix(adapter_meta)
 
-    # Determine subscription type and selector based on stream
-    {type, selector_value} =
-      case selector do
-        :all -> {:by_stream, "$all"}
-        stream_uuid when is_binary(stream_uuid) -> {:by_stream, "$#{prefix}#{stream_uuid}"}
-      end
+    {type, selector_value} = StreamHelper.stream_to_subscription_params(selector, prefix)
 
     case API.remove_subscription(store, type, selector_value, subscription_name) do
       :ok -> :ok
@@ -225,15 +266,67 @@ defmodule ExESDB.Commanded.Adapter do
     prefix = stream_prefix(adapter_meta)
     full_stream_id = prefix <> stream_uuid
 
-    case API.get_events(store, full_stream_id, start_version, read_batch_size, :forward) do
+    # Normalize start_version for ExESDB 0-based indexing
+    # Commanded uses 1-based versioning, ExESDB uses 0-based
+    normalized_start_version = case start_version do
+      0 -> 0  # Keep 0 as 0 (start from beginning)
+      version when version > 0 -> version - 1  # Convert 1-based to 0-based
+      version -> version  # Negative versions (like -1 for latest) stay as-is
+    end
+
+    Logger.info(
+      "ADAPTER: stream_forward for #{full_stream_id}, start_version: #{start_version} -> #{normalized_start_version}, batch_size: #{read_batch_size}"
+    )
+
+    case API.get_events(store, full_stream_id, normalized_start_version, read_batch_size, :forward) do
       {:ok, events} ->
-        events
-        |> Stream.map(&Mapper.to_recorded_event/1)
+        Logger.info(
+          "ADAPTER: stream_forward found #{length(events)} events for #{full_stream_id}"
+        )
+
+        # Ensure we return an empty enumerable for no events, not nil
+        case events do
+          [] ->
+            Logger.info("ADAPTER: stream_forward returning empty stream for #{full_stream_id}")
+            []
+
+          events when is_list(events) ->
+            Logger.info(
+              "ADAPTER: stream_forward converting #{length(events)} events for #{full_stream_id}"
+            )
+            
+            # Log first and last event for debugging
+            first_event = List.first(events)
+            last_event = List.last(events)
+            Logger.debug("ADAPTER: First event: #{inspect(first_event)}")
+            Logger.debug("ADAPTER: Last event: #{inspect(last_event)}")
+
+            converted_events = events |> Stream.map(&Mapper.to_recorded_event/1)
+            
+            # Log converted events
+            converted_list = Enum.to_list(converted_events)
+            if length(converted_list) > 0 do
+              first_converted = List.first(converted_list)
+              last_converted = List.last(converted_list)
+              Logger.info("ADAPTER: Converted events stream_versions: #{first_converted.stream_version} to #{last_converted.stream_version}")
+              
+              # Debug first few events to check data integrity
+              Enum.take(converted_list, 3)
+              |> Enum.with_index()
+              |> Enum.each(fn {event, index} ->
+                Logger.debug("ADAPTER: Event #{index}: type=#{event.event_type}, data=#{inspect(event.data)}")
+              end)
+            end
+            
+            converted_list
+        end
 
       {:error, :stream_not_found} ->
+        Logger.info("ADAPTER: stream_forward - stream not found: #{full_stream_id}")
         {:error, :stream_not_found}
 
       {:error, reason} ->
+        Logger.error("ADAPTER: stream_forward error for #{full_stream_id}: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -254,20 +347,76 @@ defmodule ExESDB.Commanded.Adapter do
 
   @impl Commanded.EventStore.Adapter
   def subscribe(adapter_meta, stream) do
+    require Logger
+
+    Logger.info(
+      "ADAPTER: subscribe() called for stream: #{inspect(stream)} - using AggregateListener"
+    )
+
+    if StreamHelper.allowed_stream?(stream) do
+      Logger.info("ADAPTER: Allowing subscription for #{inspect(stream)}")
+      create_subscription(adapter_meta, stream)
+    else
+      Logger.info("ADAPTER: Creating AggregateListener for individual stream: #{inspect(stream)}")
+
+      # For individual aggregate streams, use AggregateListener with PubSub
+      create_aggregate_listener(adapter_meta, stream)
+    end
+  end
+
+  # Helper function to create actual subscriptions for allowed cases
+  defp create_subscription(adapter_meta, stream) do
     store = store_id(adapter_meta)
     prefix = stream_prefix(adapter_meta)
 
-    # Determine subscription type and selector based on stream
-    {type, selector} =
-      case stream do
-        "$all" -> {:by_stream, "$all"}
-        stream_id when is_binary(stream_id) -> {:by_stream, "$#{prefix}#{stream_id}"}
-      end
+    {type, selector} = StreamHelper.stream_to_subscription_params(stream, prefix)
 
-    # Create a transient subscription (subscription_name = "transient")
-    case API.save_subscription(store, type, selector, "transient", 0, self()) do
-      :ok -> :ok
-      {:error, reason} -> {:error, reason}
+    # Create a transient subscription proxy to handle event conversion
+    subscriber = self()
+
+    proxy_pid =
+      SubscriptionProxySupervisor.start_proxy(%{
+        name: "transient_#{:erlang.unique_integer()}",
+        subscriber: subscriber,
+        stream: stream,
+        store: store,
+        type: type,
+        selector: selector
+      })
+
+    # The SubscriptionProxy will register itself with the store during initialization
+    :ok
+  end
+
+  # Helper function to create AggregateListener for individual aggregate streams
+  defp create_aggregate_listener(adapter_meta, stream) do
+    store = store_id(adapter_meta)
+    prefix = stream_prefix(adapter_meta)
+    target_stream_id = prefix <> stream  # This is the stream to filter for
+    subscriber = self()
+
+    # Create a listener config
+    listener_config = %{
+      store_id: store,
+      stream_id: target_stream_id,  # Filter for this specific stream
+      subscriber: subscriber,
+      pubsub_name: pubsub_name(),
+      # Disable historical replay for transient subscriptions to prevent duplicates
+      # Commanded handles aggregate loading via stream_forward separately
+      replay_historical_events?: false
+    }
+
+    case AggregateListenerSupervisor.start_listener(listener_config) do
+      {:ok, _listener_pid} ->
+        Logger.info("ADAPTER: Started AggregateListener for stream '#{target_stream_id}' on topic '#{store}:$all'")
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "ADAPTER: Failed to start AggregateListener for stream '#{target_stream_id}': #{inspect(reason)}"
+        )
+
+        {:error, reason}
     end
   end
 
@@ -288,65 +437,68 @@ defmodule ExESDB.Commanded.Adapter do
 
   @impl Commanded.EventStore.Adapter
   def subscribe_to(adapter_meta, stream, subscription_name, subscriber, start_from, _opts) do
-    store = store_id(adapter_meta)
-    prefix = stream_prefix(adapter_meta)
+    require Logger
 
-    # Determine subscription type and selector based on stream
-    {type, selector} =
-      case stream do
-        "$all" -> {:by_stream, "$all"}
-        stream_id when is_binary(stream_id) -> {:by_stream, "$#{prefix}#{stream_id}"}
-      end
+    Logger.warning(
+      "ADAPTER: subscribe_to() called for stream: #{inspect(stream)}, subscription: #{subscription_name}"
+    )
 
-    # Convert start_from to version number
-    start_version =
-      case start_from do
-        :origin -> 0
-        # Start from latest
-        :current -> -1
-        version when is_integer(version) -> version
-      end
+    if StreamHelper.allowed_stream?(stream) do
+      Logger.info(
+        "ADAPTER: Allowing persistent subscription: #{subscription_name} for #{inspect(stream)}"
+      )
 
-    # Save the subscription
-    case API.save_subscription(
-           store,
-           type,
-           selector,
-           subscription_name,
-           start_version,
-           subscriber
-         ) do
-      :ok ->
-        # Return a subscription handle that includes the info needed for ack_event
-        subscription = %{
-          name: subscription_name,
-          subscriber: subscriber,
-          stream: stream,
-          store: store
-        }
+      do_subscribe_to(adapter_meta, stream, subscription_name, subscriber, start_from)
+    else
+      Logger.warning(
+        "ADAPTER: BLOCKING individual stream subscription: #{subscription_name} for #{inspect(stream)} - Use event-type projections instead"
+      )
 
-        {:ok, subscription}
-
-      {:error, reason} ->
-        {:error, reason}
+      # Don't create subscriptions for individual aggregate streams
+      # Let the event-type projection system handle events instead
+      {:error, :subscription_blocked}
     end
   end
 
-  @impl Commanded.EventStore.Adapter
-  def unsubscribe(adapter_meta, subscription) do
+  # Helper function to actually create subscriptions for allowed cases
+  defp do_subscribe_to(adapter_meta, stream, subscription_name, subscriber, start_from) do
     store = store_id(adapter_meta)
+    prefix = stream_prefix(adapter_meta)
 
-    # Extract subscription info from the subscription handle
+    {type, selector} = StreamHelper.stream_to_subscription_params(stream, prefix)
+    start_version = StreamHelper.normalize_start_version(start_from)
+
+    # Start a supervised subscription proxy process
+    proxy_pid =
+      SubscriptionProxySupervisor.start_proxy(%{
+        name: subscription_name,
+        subscriber: subscriber,
+        stream: stream,
+        store: store,
+        type: type,
+        selector: selector,
+        start_version: start_version
+      })
+
+    # The SubscriptionProxy will register itself with the store during initialization
+    {:ok, proxy_pid}
+  end
+
+  @impl Commanded.EventStore.Adapter
+  def unsubscribe(_adapter_meta, subscription_pid) when is_pid(subscription_pid) do
+    # Send a message to the proxy process to trigger cleanup
+    send(subscription_pid, :unsubscribe)
+    :ok
+  end
+
+  def unsubscribe(adapter_meta, subscription) do
     case subscription do
       %{name: subscription_name, stream: stream} ->
-        # Determine subscription type and selector based on stream
+        # Legacy subscription format - handle directly
+        store = store_id(adapter_meta)
         prefix = stream_prefix(adapter_meta)
 
-        {type, selector} =
-          case stream do
-            "$all" -> {:by_stream, "$all"}
-            stream_id when is_binary(stream_id) -> {:by_stream, "$#{prefix}#{stream_id}"}
-          end
+        {type, selector} = StreamHelper.stream_to_subscription_params(stream, prefix)
 
         case API.remove_subscription(store, type, selector, subscription_name) do
           :ok -> :ok
