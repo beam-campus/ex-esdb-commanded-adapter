@@ -306,7 +306,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
               <!-- Temperature Control -->
               <div class="text-center">
                 <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <.icon name="hero-thermometer" class="h-8 w-8 text-red-600" />
+                  <.icon name="hero-fire" class="h-8 w-8 text-red-600" />
                 </div>
                 <h3 class="text-lg font-medium text-gray-900 mb-3">Temperature</h3>
                 
