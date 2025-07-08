@@ -62,7 +62,7 @@ defmodule RegulateGreenhouse.Projections.Handlers.TemperatureEventHandler do
       {:ok, nil} ->
         Logger.warning("TemperatureEventHandler: Greenhouse #{greenhouse_id} not found in cache for #{event_type}, will retry...")
         # Retry after a short delay to handle race condition where measurement events
-        # arrive before GreenhouseCreated event is processed
+        # arrive before GreenhouseInitialized event is processed
         :timer.sleep(100)
         case Cachex.get(@cache_name, greenhouse_id) do
           {:ok, nil} ->

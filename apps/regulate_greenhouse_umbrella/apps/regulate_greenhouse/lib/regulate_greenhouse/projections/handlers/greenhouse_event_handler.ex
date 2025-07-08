@@ -7,7 +7,7 @@ defmodule RegulateGreenhouse.Projections.Handlers.GreenhouseEventHandler do
   
   require Logger
   
-  alias RegulateGreenhouse.Events.GreenhouseCreated
+  alias RegulateGreenhouse.Events.GreenhouseInitialized
   alias RegulateGreenhouse.ReadModels.GreenhouseReadModel
   
   @cache_name :greenhouse_read_models
@@ -20,7 +20,7 @@ defmodule RegulateGreenhouse.Projections.Handlers.GreenhouseEventHandler do
     Logger.debug("GreenhouseEventHandler: Event data: #{inspect(data)}")
     
     # Deserialize the event data
-    event = struct(GreenhouseCreated, atomize_keys(data))
+    event = struct(GreenhouseInitialized, atomize_keys(data))
     Logger.debug("GreenhouseEventHandler: Deserialized event: #{inspect(event)}")
     
     read_model = %GreenhouseReadModel{

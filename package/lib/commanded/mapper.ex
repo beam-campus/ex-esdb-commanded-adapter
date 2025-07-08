@@ -20,7 +20,7 @@ defmodule ExESDB.Commanded.Mapper do
       when is_struct(event_data, EventData),
       do: %NewEvent{
         event_id: UUIDv7.generate(),
-        event_type: map_event_type_to_readable(event_data.event_type),
+      event_type: map_event_type_to_readable(event_data.event_type),
         data_content_type: 1,
         metadata_content_type: 1,
         data: event_data.data,
@@ -54,7 +54,7 @@ defmodule ExESDB.Commanded.Mapper do
         %RecordedEvent{
           event_id: event_record.event_id,
           event_number: event_record.event_number,
-          event_type: map_readable_to_event_type(event_record.event_type),
+      event_type: event_record.event_type,
           data: event_record.data,
           metadata: event_record.metadata,
           created_at: event_record.created,
@@ -84,7 +84,7 @@ defmodule ExESDB.Commanded.Mapper do
     %RecordedEvent{
       event_id: event_record.event_id,
       event_number: event_record.event_number,
-      event_type: map_readable_to_event_type(event_record.event_type),
+      event_type: event_record.event_type,
       data: event_record.data,
       metadata: metadata,
       created_at: event_record.created,
@@ -125,33 +125,22 @@ defmodule ExESDB.Commanded.Mapper do
         created_at: snapshot_record.created_at
       }
 
-  # Event type mappings - from Commanded event type names to readable versions
-  @event_type_mappings %{
-    "Elixir.RegulateGreenhouse.Events.GreenhouseCreated" => "initialized:v1",
-    "Elixir.RegulateGreenhouse.Events.TemperatureSet" => "desired_temperature_set:v1",
-    "Elixir.RegulateGreenhouse.Events.TemperatureMeasured" => "temperature_measured:v1",
-    "Elixir.RegulateGreenhouse.Events.HumiditySet" => "desired_humidity_set:v1",
-    "Elixir.RegulateGreenhouse.Events.HumidityMeasured" => "humidity_measured:v1",
-    "Elixir.RegulateGreenhouse.Events.LightSet" => "desired_light_set:v1",
-    "Elixir.RegulateGreenhouse.Events.LightMeasured" => "light_measured:v1"
-  }
-
+  # Event type mapping functions
+  
   @doc """
-    Maps Commanded event type names to readable, versioned names.
+  Maps a Commanded event type to a readable event type using configured mapper.
   """
   defp map_event_type_to_readable(event_type) do
-    Map.get(@event_type_mappings, event_type, event_type)
+    case get_event_type_mapper() do
+      nil -> event_type
+      mapper -> mapper.to_event_type(event_type)
+    end
   end
   
   @doc """
-    Maps readable, versioned names back to Commanded event type names.
+  Gets the configured event type mapper from application environment.
   """
-  defp map_readable_to_event_type(readable_type) do
-    # Create reverse mapping
-    reverse_mappings = @event_type_mappings
-    |> Enum.map(fn {k, v} -> {v, k} end)
-    |> Map.new()
-    
-    Map.get(reverse_mappings, readable_type, readable_type)
+  defp get_event_type_mapper do
+    Application.get_env(:ex_esdb_commanded_adapter, :event_type_mapper)
   end
 end

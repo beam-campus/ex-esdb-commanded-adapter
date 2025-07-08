@@ -1,13 +1,13 @@
 defmodule RegulateGreenhouse.Greenhouse do
   @moduledoc """
   Greenhouse aggregate for event sourcing.
-  
+
   This aggregate handles commands related to greenhouse regulation
   and maintains the current state of a greenhouse.
   """
 
   alias RegulateGreenhouse.Commands.{
-    CreateGreenhouse,
+    InitializeGreenhouse,
     SetTemperature,
     SetHumidity,
     SetLight,
@@ -17,7 +17,7 @@ defmodule RegulateGreenhouse.Greenhouse do
   }
 
   alias RegulateGreenhouse.Events.{
-    GreenhouseCreated,
+    GreenhouseInitialized,
     TemperatureSet,
     HumiditySet,
     LightSet,
@@ -56,11 +56,11 @@ defmodule RegulateGreenhouse.Greenhouse do
 
   # Command Handlers
 
-  def execute(%__MODULE__{greenhouse_id: nil}, %CreateGreenhouse{} = command) do
+  def execute(%__MODULE__{greenhouse_id: nil}, %InitializeGreenhouse{} = command) do
     require Logger
     Logger.info("Greenhouse.execute: Creating greenhouse #{command.greenhouse_id}")
-    
-    event = %GreenhouseCreated{
+
+    event = %GreenhouseInitialized{
       greenhouse_id: command.greenhouse_id,
       name: command.name,
       location: command.location,
@@ -68,12 +68,17 @@ defmodule RegulateGreenhouse.Greenhouse do
       target_humidity: command.target_humidity,
       created_at: DateTime.utc_now()
     }
-    
-    Logger.info("Greenhouse.execute: Produced GreenhouseCreated event for #{command.greenhouse_id}")
+
+    Logger.info(
+      "Greenhouse.execute: Produced GreenhouseInitialized event for #{command.greenhouse_id}"
+    )
+
     event
   end
 
-  def execute(%__MODULE__{greenhouse_id: greenhouse_id}, %CreateGreenhouse{greenhouse_id: greenhouse_id}) do
+  def execute(%__MODULE__{greenhouse_id: greenhouse_id}, %InitializeGreenhouse{
+        greenhouse_id: greenhouse_id
+      }) do
     {:error, :greenhouse_already_exists}
   end
 
@@ -110,8 +115,11 @@ defmodule RegulateGreenhouse.Greenhouse do
   def execute(%__MODULE__{} = greenhouse, %SetLight{greenhouse_id: greenhouse_id} = command)
       when greenhouse.greenhouse_id == greenhouse_id do
     require Logger
-    Logger.info("Greenhouse.execute: SetLight for #{greenhouse_id}, state greenhouse_id: #{greenhouse.greenhouse_id}")
-    
+
+    Logger.info(
+      "Greenhouse.execute: SetLight for #{greenhouse_id}, state greenhouse_id: #{greenhouse.greenhouse_id}"
+    )
+
     %LightSet{
       greenhouse_id: command.greenhouse_id,
       target_light: command.target_light,
@@ -121,11 +129,17 @@ defmodule RegulateGreenhouse.Greenhouse do
     }
   end
 
-  def execute(%__MODULE__{} = greenhouse, %MeasureTemperature{greenhouse_id: greenhouse_id} = command)
+  def execute(
+        %__MODULE__{} = greenhouse,
+        %MeasureTemperature{greenhouse_id: greenhouse_id} = command
+      )
       when greenhouse.greenhouse_id == greenhouse_id do
     require Logger
-    Logger.info("Greenhouse.execute: MeasureTemperature for #{greenhouse_id}, temperature: #{command.temperature}°C")
-    
+
+    Logger.info(
+      "Greenhouse.execute: MeasureTemperature for #{greenhouse_id}, temperature: #{command.temperature}°C"
+    )
+
     %TemperatureMeasured{
       greenhouse_id: command.greenhouse_id,
       temperature: command.temperature,
@@ -133,11 +147,17 @@ defmodule RegulateGreenhouse.Greenhouse do
     }
   end
 
-  def execute(%__MODULE__{} = greenhouse, %MeasureHumidity{greenhouse_id: greenhouse_id} = command)
+  def execute(
+        %__MODULE__{} = greenhouse,
+        %MeasureHumidity{greenhouse_id: greenhouse_id} = command
+      )
       when greenhouse.greenhouse_id == greenhouse_id do
     require Logger
-    Logger.info("Greenhouse.execute: MeasureHumidity for #{greenhouse_id}, humidity: #{command.humidity}%")
-    
+
+    Logger.info(
+      "Greenhouse.execute: MeasureHumidity for #{greenhouse_id}, humidity: #{command.humidity}%"
+    )
+
     %HumidityMeasured{
       greenhouse_id: command.greenhouse_id,
       humidity: command.humidity,
@@ -148,8 +168,11 @@ defmodule RegulateGreenhouse.Greenhouse do
   def execute(%__MODULE__{} = greenhouse, %MeasureLight{greenhouse_id: greenhouse_id} = command)
       when greenhouse.greenhouse_id == greenhouse_id do
     require Logger
-    Logger.info("Greenhouse.execute: MeasureLight for #{greenhouse_id}, light: #{command.light} lumens")
-    
+
+    Logger.info(
+      "Greenhouse.execute: MeasureLight for #{greenhouse_id}, light: #{command.light} lumens"
+    )
+
     %LightMeasured{
       greenhouse_id: command.greenhouse_id,
       light: command.light,
@@ -161,23 +184,23 @@ defmodule RegulateGreenhouse.Greenhouse do
     require Logger
     command_name = command.__struct__ |> to_string() |> String.split(".") |> List.last()
     command_greenhouse_id = Map.get(command, :greenhouse_id, "unknown")
-    
+
     Logger.error("Greenhouse.execute: Command #{command_name} failed - greenhouse_id mismatch")
     Logger.error("Greenhouse.execute: Command greenhouse_id: #{command_greenhouse_id}")
     Logger.error("Greenhouse.execute: State greenhouse_id: #{inspect(greenhouse.greenhouse_id)}")
     Logger.error("Greenhouse.execute: Full state: #{inspect(greenhouse)}")
     Logger.error("Greenhouse.execute: Full command: #{inspect(command)}")
-    
+
     {:error, :greenhouse_id_mismatch}
   end
 
   # State Mutators
 
-  def apply(%__MODULE__{} = _greenhouse, %GreenhouseCreated{} = event) do
+  def apply(%__MODULE__{} = _greenhouse, %GreenhouseInitialized{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: GreenhouseCreated event for #{event.greenhouse_id}")
+    Logger.info("Greenhouse.apply: GreenhouseInitialized event for #{event.greenhouse_id}")
     Logger.debug("Greenhouse.apply: Event data: #{inspect(event)}")
-    
+
     new_state = %__MODULE__{
       greenhouse_id: event.greenhouse_id,
       name: event.name,
@@ -186,68 +209,76 @@ defmodule RegulateGreenhouse.Greenhouse do
       target_humidity: event.target_humidity,
       created_at: event.created_at
     }
-    
+
     Logger.info("Greenhouse.apply: New state greenhouse_id: #{new_state.greenhouse_id}")
     new_state
   end
 
   def apply(%__MODULE__{} = greenhouse, %TemperatureSet{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: TemperatureSet for #{event.greenhouse_id}, target: #{event.target_temperature}°C")
-    
-    %__MODULE__{greenhouse | 
-      target_temperature: event.target_temperature,
-      updated_at: event.set_at
+
+    Logger.info(
+      "Greenhouse.apply: TemperatureSet for #{event.greenhouse_id}, target: #{event.target_temperature}°C"
+    )
+
+    %__MODULE__{
+      greenhouse
+      | target_temperature: event.target_temperature,
+        updated_at: event.set_at
     }
   end
 
   def apply(%__MODULE__{} = greenhouse, %HumiditySet{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: HumiditySet for #{event.greenhouse_id}, target: #{event.target_humidity}%")
-    
-    %__MODULE__{greenhouse | 
-      target_humidity: event.target_humidity,
-      updated_at: event.set_at
-    }
+
+    Logger.info(
+      "Greenhouse.apply: HumiditySet for #{event.greenhouse_id}, target: #{event.target_humidity}%"
+    )
+
+    %__MODULE__{greenhouse | target_humidity: event.target_humidity, updated_at: event.set_at}
   end
 
   def apply(%__MODULE__{} = greenhouse, %LightSet{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: LightSet for #{event.greenhouse_id}, target: #{event.target_light} lumens")
-    
-    %__MODULE__{greenhouse | 
-      target_light: event.target_light,
-      updated_at: event.set_at
-    }
+
+    Logger.info(
+      "Greenhouse.apply: LightSet for #{event.greenhouse_id}, target: #{event.target_light} lumens"
+    )
+
+    %__MODULE__{greenhouse | target_light: event.target_light, updated_at: event.set_at}
   end
 
   def apply(%__MODULE__{} = greenhouse, %TemperatureMeasured{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: TemperatureMeasured for #{event.greenhouse_id}, temperature: #{event.temperature}°C")
-    
-    %__MODULE__{greenhouse | 
-      current_temperature: event.temperature,
-      updated_at: event.measured_at
+
+    Logger.info(
+      "Greenhouse.apply: TemperatureMeasured for #{event.greenhouse_id}, temperature: #{event.temperature}°C"
+    )
+
+    %__MODULE__{
+      greenhouse
+      | current_temperature: event.temperature,
+        updated_at: event.measured_at
     }
   end
 
   def apply(%__MODULE__{} = greenhouse, %HumidityMeasured{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: HumidityMeasured for #{event.greenhouse_id}, humidity: #{event.humidity}%")
-    
-    %__MODULE__{greenhouse | 
-      current_humidity: event.humidity,
-      updated_at: event.measured_at
-    }
+
+    Logger.info(
+      "Greenhouse.apply: HumidityMeasured for #{event.greenhouse_id}, humidity: #{event.humidity}%"
+    )
+
+    %__MODULE__{greenhouse | current_humidity: event.humidity, updated_at: event.measured_at}
   end
 
   def apply(%__MODULE__{} = greenhouse, %LightMeasured{} = event) do
     require Logger
-    Logger.info("Greenhouse.apply: LightMeasured for #{event.greenhouse_id}, light: #{event.light} lumens")
-    
-    %__MODULE__{greenhouse | 
-      current_light: event.light,
-      updated_at: event.measured_at
-    }
+
+    Logger.info(
+      "Greenhouse.apply: LightMeasured for #{event.greenhouse_id}, light: #{event.light} lumens"
+    )
+
+    %__MODULE__{greenhouse | current_light: event.light, updated_at: event.measured_at}
   end
 end

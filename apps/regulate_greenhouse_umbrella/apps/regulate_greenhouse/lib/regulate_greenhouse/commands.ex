@@ -3,9 +3,9 @@ defmodule RegulateGreenhouse.Commands do
   Commands for greenhouse regulation domain.
   """
 
-  defmodule CreateGreenhouse do
+  defmodule InitializeGreenhouse do
     @moduledoc """
-    Command to create a new greenhouse.
+    Command to initialize a new greenhouse.
     """
 
     @enforce_keys [:greenhouse_id, :name, :location]

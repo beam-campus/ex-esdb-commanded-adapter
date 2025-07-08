@@ -342,25 +342,27 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
             </div>
             <div class="p-6">
               <%= if length(@greenhouse.events) > 0 do %>
-                <div class="space-y-4">
+                <div class="space-y-2">
                   <%= for event <- Enum.take(@greenhouse.events, 10) do %>
-                    <div class="flex items-start space-x-3">
+                    <div class="flex items-center space-x-3 py-2 px-3 bg-gray-50 rounded">
                       <div class="flex-shrink-0">
                         <div class={[
-                          "w-3 h-3 rounded-full mt-1",
+                          "w-2 h-2 rounded-full",
                           event_type_color(event.event_type)
                         ]}></div>
                       </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900">
+                      <div class="flex-1 min-w-0 flex items-center space-x-3">
+                        <span class="text-sm font-medium text-gray-900 whitespace-nowrap">
                           <%= format_event_type(event.event_type) %>
-                        </p>
-                        <p class="text-sm text-gray-500">
+                        </span>
+                        <span class="text-sm text-gray-600">
                           <%= format_event_data(event) %>
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">
+                        </span>
+                      </div>
+                      <div class="flex-shrink-0">
+                        <span class="text-xs text-gray-400 whitespace-nowrap">
                           <%= format_timestamp(event.created) %>
-                        </p>
+                        </span>
                       </div>
                     </div>
                   <% end %>
@@ -383,6 +385,8 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
       {:ok, state} ->
         # Get recent events for display
         events = API.get_greenhouse_events(greenhouse_id, 20) || []
+        require Logger
+        Logger.info("GreenhouseLive: Loaded #{length(events)} events for greenhouse #{greenhouse_id}: #{inspect(events)}")
         
         greenhouse = %{
           id: greenhouse_id,
@@ -463,18 +467,40 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
   defp format_event_type(type), do: type
 
   defp format_event_data(event) do
+    data = event.data || %{}
+    
     case event.event_type do
-      "temperature_measured:v1" -> "#{event.data["temperature"]}°C"
-      "humidity_measured:v1" -> "#{event.data["humidity"]}%"
-      "light_measured:v1" -> "#{event.data["light"]}%"
-      "desired_temperature_set:v1" -> "Target: #{event.data["temperature"]}°C"
-      "desired_humidity_set:v1" -> "Target: #{event.data["humidity"]}%"
-      "desired_light_set:v1" -> "Target: #{event.data["light"]}%"
+      "temperature_measured:v1" -> 
+        temp = Map.get(data, :temperature) || "?"
+        "#{temp}°C"
+      "humidity_measured:v1" -> 
+        humidity = Map.get(data, :humidity) || "?"
+        "#{humidity}%"
+      "light_measured:v1" -> 
+        light = Map.get(data, :light) || "?"
+        "#{light}%"
+      "desired_temperature_set:v1" -> 
+        temp = Map.get(data, :target_temperature) || "?"
+        "Target: #{temp}°C"
+      "desired_humidity_set:v1" -> 
+        humidity = Map.get(data, :target_humidity) || "?"
+        "Target: #{humidity}%"
+      "desired_light_set:v1" -> 
+        light = Map.get(data, :target_light) || "?"
+        "Target: #{light}%"
       "initialized:v1" -> 
-        "T: #{event.data["temperature"]}°C, H: #{event.data["humidity"]}%, L: #{event.data["light"]}%"
+        name = Map.get(data, :name) || "Unknown"
+        location = Map.get(data, :location) || "Unknown"
+        "#{name} at #{location}"
       _ -> 
-        inspect(event.data)
+        "Data: #{inspect(data, limit: 3)}"
     end
+  end
+
+  defp format_timestamp(%DateTime{} = timestamp) do
+    timestamp
+    |> DateTime.shift_zone!("Etc/UTC")
+    |> Calendar.strftime("%m/%d %H:%M:%S")
   end
 
   defp format_timestamp(timestamp) when is_binary(timestamp) do
@@ -482,7 +508,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
       {:ok, dt, _} -> 
         dt
         |> DateTime.shift_zone!("Etc/UTC")
-        |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")
+        |> Calendar.strftime("%m/%d %H:%M:%S")
       
       _ -> 
         timestamp

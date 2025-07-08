@@ -77,8 +77,12 @@ config :regulate_greenhouse, RegulateGreenhouse.CommandedApp,
     adapter: ExESDB.Commanded.Adapter,
     store_id: :reg_gh,
     stream_prefix: "regulate_greenhouse_",
-    serializer: Jason
+    serializer: Jason,
+    event_type_mapper: RegulateGreenhouse.EventTypeMapper
   ]
+
+# Configure the ExESDB adapter to use the event type mapper
+config :ex_esdb_commanded_adapter, :event_type_mapper, RegulateGreenhouse.EventTypeMapper
 
 # Configure libcluster for automatic cluster discovery (preferred over seed_nodes)
 config :libcluster,

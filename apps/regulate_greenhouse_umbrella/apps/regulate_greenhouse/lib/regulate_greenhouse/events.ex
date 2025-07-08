@@ -3,14 +3,21 @@ defmodule RegulateGreenhouse.Events do
   Events for greenhouse regulation domain.
   """
 
-  defmodule GreenhouseCreated do
+  defmodule GreenhouseInitialized do
     @moduledoc """
     Event raised when a greenhouse is created.
     """
 
     @derive Jason.Encoder
     @enforce_keys [:greenhouse_id, :name, :location]
-    defstruct [:greenhouse_id, :name, :location, :target_temperature, :target_humidity, :created_at]
+    defstruct [
+      :greenhouse_id,
+      :name,
+      :location,
+      :target_temperature,
+      :target_humidity,
+      :created_at
+    ]
 
     @type t :: %__MODULE__{
             greenhouse_id: String.t(),
