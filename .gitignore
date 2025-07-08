@@ -9,14 +9,14 @@
 tmp/
 
 
+
 ## Elixir
 /_build
 /cover
 /deps
 /.fetch
 /tmp
-/system/tmp
-/system/doc
+/doc
 
 
 erl_crash.dump

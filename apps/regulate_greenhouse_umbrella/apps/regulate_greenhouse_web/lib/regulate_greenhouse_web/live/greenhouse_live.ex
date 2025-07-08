@@ -16,6 +16,12 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
       socket
       |> assign(:greenhouse_id, greenhouse_id)
       |> assign(:page_title, "Greenhouse #{greenhouse_id}")
+      |> assign(:temp_temperature, nil)
+      |> assign(:temp_humidity, nil)
+      |> assign(:temp_light, nil)
+      |> assign(:debounce_timer_temperature, nil)
+      |> assign(:debounce_timer_humidity, nil)
+      |> assign(:debounce_timer_light, nil)
       |> load_greenhouse_data()
 
     {:ok, socket}
@@ -47,73 +53,189 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
   end
 
   @impl true
-  def handle_event("set_desired_temperature", %{"temperature" => temp_str}, socket) do
-    case Float.parse(temp_str) do
-      {temperature, _} ->
-        case API.set_desired_temperature(socket.assigns.greenhouse_id, temperature) do
-          :ok ->
-            socket = 
-              socket
-              |> put_flash(:info, "Desired temperature set to #{temperature}°C")
-              |> load_greenhouse_data()
-            {:noreply, socket}
-          
-          {:error, reason} ->
-            socket = put_flash(socket, :error, "Failed to set temperature: #{inspect(reason)}")
-            {:noreply, socket}
-        end
+  def handle_info({:auto_save_temperature, temperature}, socket) do
+    require Logger
+    Logger.info("Auto-saving temperature: #{temperature}")
+    
+    case API.set_desired_temperature(socket.assigns.greenhouse_id, temperature) do
+      :ok ->
+        socket = 
+          socket
+          |> put_flash(:info, "Temperature set to #{temperature}°C")
+          |> assign(:temp_temperature, nil)
+          |> assign(:debounce_timer_temperature, nil)
+          |> load_greenhouse_data()
+        {:noreply, socket}
       
-      :error ->
-        socket = put_flash(socket, :error, "Invalid temperature value")
+      {:error, reason} ->
+        socket = 
+          socket
+          |> put_flash(:error, "Failed to set temperature: #{inspect(reason)}")
+          |> assign(:debounce_timer_temperature, nil)
         {:noreply, socket}
     end
   end
 
   @impl true
-  def handle_event("set_desired_humidity", %{"humidity" => humidity_str}, socket) do
-    case Float.parse(humidity_str) do
-      {humidity, _} ->
-        case API.set_desired_humidity(socket.assigns.greenhouse_id, humidity) do
-          :ok ->
-            socket = 
-              socket
-              |> put_flash(:info, "Desired humidity set to #{humidity}%")
-              |> load_greenhouse_data()
-            {:noreply, socket}
-          
-          {:error, reason} ->
-            socket = put_flash(socket, :error, "Failed to set humidity: #{inspect(reason)}")
-            {:noreply, socket}
-        end
+  def handle_info({:auto_save_humidity, humidity}, socket) do
+    require Logger
+    Logger.info("Auto-saving humidity: #{humidity}")
+    
+    case API.set_desired_humidity(socket.assigns.greenhouse_id, humidity) do
+      :ok ->
+        socket = 
+          socket
+          |> put_flash(:info, "Humidity set to #{humidity}%")
+          |> assign(:temp_humidity, nil)
+          |> assign(:debounce_timer_humidity, nil)
+          |> load_greenhouse_data()
+        {:noreply, socket}
       
-      :error ->
-        socket = put_flash(socket, :error, "Invalid humidity value")
+      {:error, reason} ->
+        socket = 
+          socket
+          |> put_flash(:error, "Failed to set humidity: #{inspect(reason)}")
+          |> assign(:debounce_timer_humidity, nil)
         {:noreply, socket}
     end
   end
 
   @impl true
-  def handle_event("set_desired_light", %{"light" => light_str}, socket) do
-    case Float.parse(light_str) do
-      {light, _} ->
-        case API.set_desired_light(socket.assigns.greenhouse_id, light) do
-          :ok ->
-            socket = 
-              socket
-              |> put_flash(:info, "Desired light set to #{light}%")
-              |> load_greenhouse_data()
-            {:noreply, socket}
-          
-          {:error, reason} ->
-            socket = put_flash(socket, :error, "Failed to set light: #{inspect(reason)}")
-            {:noreply, socket}
-        end
+  def handle_info({:auto_save_light, light}, socket) do
+    require Logger
+    Logger.info("Auto-saving light: #{light}")
+    
+    case API.set_desired_light(socket.assigns.greenhouse_id, light) do
+      :ok ->
+        socket = 
+          socket
+          |> put_flash(:info, "Light set to #{light}%")
+          |> assign(:temp_light, nil)
+          |> assign(:debounce_timer_light, nil)
+          |> load_greenhouse_data()
+        {:noreply, socket}
       
-      :error ->
-        socket = put_flash(socket, :error, "Invalid light value")
+      {:error, reason} ->
+        socket = 
+          socket
+          |> put_flash(:error, "Failed to set light: #{inspect(reason)}")
+          |> assign(:debounce_timer_light, nil)
         {:noreply, socket}
     end
   end
+
+  @impl true
+  def handle_event("update_temperature_slider", params, socket) do
+    require Logger
+    Logger.info("Temperature slider event received: #{inspect(params)}")
+    
+    case params do
+      %{"value" => temp_str} ->
+        case Float.parse(temp_str) do
+          {temperature, _} ->
+            Logger.info("Setting temp_temperature to: #{temperature}")
+            
+            # Cancel existing timer if any
+            if socket.assigns.debounce_timer_temperature do
+              Process.cancel_timer(socket.assigns.debounce_timer_temperature)
+            end
+            
+            # Set up new debounced timer (1 second delay)
+            timer = Process.send_after(self(), {:auto_save_temperature, temperature}, 1000)
+            
+            socket = 
+              socket
+              |> assign(:temp_temperature, temperature)
+              |> assign(:debounce_timer_temperature, timer)
+            
+            {:noreply, socket}
+          
+          :error ->
+            Logger.error("Failed to parse temperature: #{temp_str}")
+            {:noreply, socket}
+        end
+      
+      _ ->
+        Logger.error("Unexpected params structure: #{inspect(params)}")
+        {:noreply, socket}
+    end
+  end
+
+
+  @impl true
+  def handle_event("update_humidity_slider", params, socket) do
+    require Logger
+    Logger.info("Humidity slider event received: #{inspect(params)}")
+    
+    case params do
+      %{"value" => humidity_str} ->
+        case Float.parse(humidity_str) do
+          {humidity, _} ->
+            Logger.info("Setting temp_humidity to: #{humidity}")
+            
+            # Cancel existing timer if any
+            if socket.assigns.debounce_timer_humidity do
+              Process.cancel_timer(socket.assigns.debounce_timer_humidity)
+            end
+            
+            # Set up new debounced timer (1 second delay)
+            timer = Process.send_after(self(), {:auto_save_humidity, humidity}, 1000)
+            
+            socket = 
+              socket
+              |> assign(:temp_humidity, humidity)
+              |> assign(:debounce_timer_humidity, timer)
+            
+            {:noreply, socket}
+          
+          :error ->
+            Logger.error("Failed to parse humidity: #{humidity_str}")
+            {:noreply, socket}
+        end
+      
+      _ ->
+        Logger.error("Unexpected params structure: #{inspect(params)}")
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("update_light_slider", params, socket) do
+    require Logger
+    Logger.info("Light slider event received: #{inspect(params)}")
+    
+    case params do
+      %{"value" => light_str} ->
+        case Float.parse(light_str) do
+          {light, _} ->
+            Logger.info("Setting temp_light to: #{light}")
+            
+            # Cancel existing timer if any
+            if socket.assigns.debounce_timer_light do
+              Process.cancel_timer(socket.assigns.debounce_timer_light)
+            end
+            
+            # Set up new debounced timer (1 second delay)
+            timer = Process.send_after(self(), {:auto_save_light, light}, 1000)
+            
+            socket = 
+              socket
+              |> assign(:temp_light, light)
+              |> assign(:debounce_timer_light, timer)
+            
+            {:noreply, socket}
+          
+          :error ->
+            Logger.error("Failed to parse light: #{light_str}")
+            {:noreply, socket}
+        end
+      
+      _ ->
+        Logger.error("Unexpected params structure: #{inspect(params)}")
+        {:noreply, socket}
+    end
+  end
+
 
   @impl true
   def handle_event("simulate_measurement", %{"type" => measurement_type}, socket) do
@@ -174,161 +296,165 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
 
       <!-- Main Content -->
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <!-- Current Readings -->
-          <div class="lg:col-span-2">
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">Current Readings</h2>
-              </div>
-              <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <!-- Temperature -->
-                  <div class="text-center">
-                    <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                      <.icon name="hero-thermometer" class="h-8 w-8 text-red-600" />
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900">Temperature</h3>
-                    <p class="text-3xl font-bold text-red-600 mt-2">
-                      <%= @greenhouse.current_temperature %>°C
-                    </p>
-                    <%= if @greenhouse.desired_temperature do %>
-                      <p class="text-sm text-gray-500 mt-1">
-                        Target: <%= @greenhouse.desired_temperature %>°C
-                      </p>
-                    <% end %>
+        <!-- Environmental Controls -->
+        <div class="bg-white shadow rounded-lg">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">Environmental Control</h2>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <!-- Temperature Control -->
+              <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                  <.icon name="hero-thermometer" class="h-8 w-8 text-red-600" />
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Temperature</h3>
+                
+                <!-- Current Reading -->
+                <div class="mb-4">
+                  <div class="text-3xl font-bold text-red-600">
+                    <%= @greenhouse.current_temperature %>°C
                   </div>
-
-                  <!-- Humidity -->
-                  <div class="text-center">
-                    <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                      <.icon name="hero-cloud" class="h-8 w-8 text-blue-600" />
+                  <div class="text-sm text-gray-500">Current</div>
+                </div>
+                
+                <!-- Target Setting -->
+                <div class="space-y-4">
+                  <div class="px-3">
+                    <form phx-change="update_temperature_slider">
+                      <input 
+                        type="range" 
+                        name="value"
+                        min="0" 
+                        max="50" 
+                        step="0.5" 
+                        value={@temp_temperature || @greenhouse.desired_temperature || 20}
+                        class="w-full h-2 bg-red-200 rounded-lg appearance-none cursor-pointer slider-red"
+                      />
+                    </form>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0°C</span>
+                      <span>50°C</span>
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900">Humidity</h3>
-                    <p class="text-3xl font-bold text-blue-600 mt-2">
-                      <%= @greenhouse.current_humidity %>%
-                    </p>
-                    <%= if @greenhouse.desired_humidity do %>
-                      <p class="text-sm text-gray-500 mt-1">
-                        Target: <%= @greenhouse.desired_humidity %>%
-                      </p>
-                    <% end %>
                   </div>
-
-                  <!-- Light -->
                   <div class="text-center">
-                    <div class="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-                      <.icon name="hero-sun" class="h-8 w-8 text-yellow-600" />
+                    <div class="text-lg font-semibold text-red-600">
+                      Target: <%= @temp_temperature || @greenhouse.desired_temperature || 20 %>°C
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900">Light</h3>
-                    <p class="text-3xl font-bold text-yellow-600 mt-2">
-                      <%= @greenhouse.current_light %>%
-                    </p>
-                    <%= if @greenhouse.desired_light do %>
-                      <p class="text-sm text-gray-500 mt-1">
-                        Target: <%= @greenhouse.desired_light %>%
-                      </p>
-                    <% end %>
                   </div>
                 </div>
+              </div>
 
-                <!-- Simulation Controls -->
-                <div class="mt-8 border-t border-gray-200 pt-6">
-                  <h3 class="text-lg font-medium text-gray-900 mb-4">Simulate Sensor Readings</h3>
-                  <div class="flex flex-wrap gap-2">
-                    <.button 
-                      phx-click="simulate_measurement" 
-                      phx-value-type="temperature"
-                      class="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      Simulate Temperature
-                    </.button>
-                    <.button 
-                      phx-click="simulate_measurement" 
-                      phx-value-type="humidity"
-                      class="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Simulate Humidity
-                    </.button>
-                    <.button 
-                      phx-click="simulate_measurement" 
-                      phx-value-type="light"
-                      class="bg-yellow-600 hover:bg-yellow-700 text-white"
-                    >
-                      Simulate Light
-                    </.button>
+              <!-- Humidity Control -->
+              <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <.icon name="hero-cloud" class="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Humidity</h3>
+                
+                <!-- Current Reading -->
+                <div class="mb-4">
+                  <div class="text-3xl font-bold text-blue-600">
+                    <%= @greenhouse.current_humidity %>%
+                  </div>
+                  <div class="text-sm text-gray-500">Current</div>
+                </div>
+                
+                <!-- Target Setting -->
+                <div class="space-y-4">
+                  <div class="px-3">
+                    <form phx-change="update_humidity_slider">
+                      <input 
+                        type="range" 
+                        name="value"
+                        min="0" 
+                        max="100" 
+                        step="1" 
+                        value={@temp_humidity || @greenhouse.desired_humidity || 50}
+                        class="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer slider-blue"
+                      />
+                    </form>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-lg font-semibold text-blue-600">
+                      Target: <%= @temp_humidity || @greenhouse.desired_humidity || 50 %>%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Light Control -->
+              <div class="text-center">
+                <div class="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                  <.icon name="hero-sun" class="h-8 w-8 text-yellow-600" />
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Light</h3>
+                
+                <!-- Current Reading -->
+                <div class="mb-4">
+                  <div class="text-3xl font-bold text-yellow-600">
+                    <%= @greenhouse.current_light %>%
+                  </div>
+                  <div class="text-sm text-gray-500">Current</div>
+                </div>
+                
+                <!-- Target Setting -->
+                <div class="space-y-4">
+                  <div class="px-3">
+                    <form phx-change="update_light_slider">
+                      <input 
+                        type="range" 
+                        name="value"
+                        min="0" 
+                        max="100" 
+                        step="1" 
+                        value={@temp_light || @greenhouse.desired_light || 50}
+                        class="w-full h-2 bg-yellow-200 rounded-lg appearance-none cursor-pointer slider-yellow"
+                      />
+                    </form>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-lg font-semibold text-yellow-600">
+                      Target: <%= @temp_light || @greenhouse.desired_light || 50 %>%
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Controls -->
-          <div>
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">Set Desired Values</h2>
-              </div>
-              <div class="p-6 space-y-6">
-                <!-- Temperature Control -->
-                <div>
-                  <.simple_form for={%{}} phx-submit="set_desired_temperature">
-                    <.input 
-                      type="number" 
-                      name="temperature" 
-                      label="Desired Temperature (°C)" 
-                      value={@greenhouse.desired_temperature}
-                      step="0.1"
-                      min="0"
-                      max="50"
-                    />
-                    <:actions>
-                      <.button class="w-full bg-red-600 hover:bg-red-700 text-white">
-                        Set Temperature
-                      </.button>
-                    </:actions>
-                  </.simple_form>
-                </div>
-
-                <!-- Humidity Control -->
-                <div>
-                  <.simple_form for={%{}} phx-submit="set_desired_humidity">
-                    <.input 
-                      type="number" 
-                      name="humidity" 
-                      label="Desired Humidity (%)" 
-                      value={@greenhouse.desired_humidity}
-                      step="1"
-                      min="0"
-                      max="100"
-                    />
-                    <:actions>
-                      <.button class="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                        Set Humidity
-                      </.button>
-                    </:actions>
-                  </.simple_form>
-                </div>
-
-                <!-- Light Control -->
-                <div>
-                  <.simple_form for={%{}} phx-submit="set_desired_light">
-                    <.input 
-                      type="number" 
-                      name="light" 
-                      label="Desired Light (%)" 
-                      value={@greenhouse.desired_light}
-                      step="1"
-                      min="0"
-                      max="100"
-                    />
-                    <:actions>
-                      <.button class="w-full bg-yellow-600 hover:bg-yellow-700 text-white">
-                        Set Light
-                      </.button>
-                    </:actions>
-                  </.simple_form>
-                </div>
+            
+            <!-- Simulation Controls -->
+            <div class="mt-8 border-t border-gray-200 pt-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Simulate Sensor Readings</h3>
+              <div class="flex flex-wrap gap-2">
+                <.button 
+                  phx-click="simulate_measurement" 
+                  phx-value-type="temperature"
+                  class="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Simulate Temperature
+                </.button>
+                <.button 
+                  phx-click="simulate_measurement" 
+                  phx-value-type="humidity"
+                  class="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Simulate Humidity
+                </.button>
+                <.button 
+                  phx-click="simulate_measurement" 
+                  phx-value-type="light"
+                  class="bg-yellow-600 hover:bg-yellow-700 text-white"
+                >
+                  Simulate Light
+                </.button>
               </div>
             </div>
           </div>
@@ -516,4 +642,11 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
   end
 
   defp format_timestamp(timestamp), do: inspect(timestamp)
+
+  @impl true
+  def handle_event(event, params, socket) do
+    require Logger
+    Logger.info("Unhandled event: #{event} with params: #{inspect(params)}")
+    {:noreply, socket}
+  end
 end
