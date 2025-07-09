@@ -9,11 +9,13 @@ defmodule RegulateGreenhouse.Events do
     """
 
     @derive Jason.Encoder
-    @enforce_keys [:greenhouse_id, :name, :location]
+    @enforce_keys [:greenhouse_id, :name, :location, :city, :country]
     defstruct [
       :greenhouse_id,
       :name,
       :location,
+      :city,
+      :country,
       :target_temperature,
       :target_humidity,
       :created_at
@@ -23,6 +25,8 @@ defmodule RegulateGreenhouse.Events do
             greenhouse_id: String.t(),
             name: String.t(),
             location: String.t(),
+            city: String.t(),
+            country: String.t(),
             target_temperature: float() | nil,
             target_humidity: float() | nil,
             created_at: DateTime.t()

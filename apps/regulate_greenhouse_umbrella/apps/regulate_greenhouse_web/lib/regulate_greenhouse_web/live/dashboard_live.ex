@@ -2,6 +2,7 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
   use RegulateGreenhouseWeb, :live_view
 
   alias RegulateGreenhouse.API
+  require Logger
 
   @impl true
   def mount(_params, _session, socket) do
@@ -15,6 +16,7 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
     socket =
       socket
       |> assign(:greenhouses, load_greenhouses())
+      |> assign(:countries, load_countries())
       |> assign(:page_title, "Greenhouse Dashboard")
 
     {:ok, socket}
@@ -36,18 +38,26 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
   end
 
   @impl true
-  def handle_event("initialize_greenhouse", %{"greenhouse_id" => greenhouse_id}, socket) do
+  def handle_event("initialize_greenhouse", %{"greenhouse_id" => greenhouse_id, "country" => country, "city" => city}, socket) do
     require Logger
-    Logger.info("Dashboard: Initializing greenhouse #{greenhouse_id}")
+    Logger.info("Dashboard: Initializing greenhouse #{greenhouse_id} in #{city}, #{country}")
 
-    # Generate initial sensor readings
-    temperature = 20 + :rand.uniform(10)
-    humidity = 40 + :rand.uniform(30)
-    light = 30 + :rand.uniform(40)
-
-    Logger.info("Dashboard: Generated readings - T:#{temperature}, H:#{humidity}, L:#{light}")
-
-    case API.initialize_greenhouse(greenhouse_id, temperature, humidity, light) do
+    # Geocode the city to get coordinates using Open-Meteo (no API key needed)
+    case RegulateGreenhouse.GeocodingService.geocode_city(city, country, nil) do
+      {:ok, {lat, lon}} ->
+        location = RegulateGreenhouse.GeocodingService.coordinates_to_location_string(lat, lon)
+        Logger.info("Dashboard: Successfully geocoded #{city}, #{country} to #{location}")
+        create_greenhouse_with_location(greenhouse_id, location, city, country, socket)
+      
+      {:error, reason} ->
+        Logger.error("Dashboard: Failed to geocode #{city}, #{country}: #{inspect(reason)}")
+        socket = put_flash(socket, :error, "Failed to find location: #{city}, #{country}. Please try a different city.")
+        {:noreply, socket}
+    end
+  end
+  
+  defp create_greenhouse_with_location(greenhouse_id, location, city, country, socket) do
+    case API.create_greenhouse(greenhouse_id, greenhouse_id, location, city, country) do
       :ok ->
         Logger.info(
           "Dashboard: Greenhouse #{greenhouse_id} initialized successfully, reloading data"
@@ -73,6 +83,7 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
         {:noreply, socket}
     end
   end
+  
 
   @impl true
   def render(assigns) do
@@ -174,62 +185,112 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
         </div>
         
     <!-- Greenhouses Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <%= for greenhouse <- @greenhouses do %>
-            <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow duration-200">
-              <div class="p-6">
+            <.link navigate={~p"/greenhouse/#{greenhouse.id}"} class="block">
+              <div class="bg-white overflow-hidden shadow-lg rounded-xl hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border-2 border-transparent hover:border-green-500 hover:ring-2 hover:ring-green-200 hover:ring-opacity-50">
+              <!-- Card Header -->
+              <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-medium text-gray-900">
-                    {greenhouse.id}
-                  </h3>
+                  <div class="flex items-center space-x-3">
+                    <div class="bg-white/20 rounded-full p-2">
+                      <.icon name="hero-home-modern" class="h-5 w-5 text-white" />
+                    </div>
+                    <h3 class="text-xl font-bold text-white">
+                      {greenhouse.id}
+                    </h3>
+                  </div>
                   <span class={[
-                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                    status_color_class(greenhouse.status)
+                    "inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold",
+                    status_badge_class(greenhouse.status)
                   ]}>
-                    {greenhouse.status}
+                    <div class={[
+                      "w-2 h-2 rounded-full mr-2",
+                      status_dot_class(greenhouse.status)
+                    ]}></div>
+                    {format_status(greenhouse.status)}
                   </span>
                 </div>
+              </div>
 
-                <div class="mt-4 space-y-2">
-                  <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">Temperature:</span>
-                    <span class="text-sm font-medium text-gray-900">
-                      {greenhouse.current_temperature}°C
-                    </span>
+              <!-- Card Body -->
+              <div class="p-6">
+                <!-- Location Info -->
+                <div class="mb-4 flex items-center justify-center">
+                  <%= display_location_info(greenhouse) %>
+                </div>
+                <!-- Metrics Grid -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                  <!-- Temperature -->
+                  <div class="text-center">
+                    <div class="bg-red-50 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <.icon name="hero-fire" class="h-6 w-6 text-red-500" />
+                    </div>
+                    <p class="text-2xl font-bold text-red-600">{format_integer(greenhouse.current_temperature)}°</p>
+                    <p class="text-xs text-gray-500 font-medium">Temperature</p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      <%= if greenhouse.desired_temperature do %>
+                        Target: {format_integer(greenhouse.desired_temperature)}°
+                      <% else %>
+                        <span class="italic">No target set</span>
+                      <% end %>
+                    </p>
                   </div>
 
-                  <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">Humidity:</span>
-                    <span class="text-sm font-medium text-gray-900">
-                      {greenhouse.current_humidity}%
-                    </span>
+                  <!-- Humidity -->
+                  <div class="text-center">
+                    <div class="bg-blue-50 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <.icon name="hero-cloud" class="h-6 w-6 text-blue-500" />
+                    </div>
+                    <p class="text-2xl font-bold text-blue-600">{format_integer(greenhouse.current_humidity)}%</p>
+                    <p class="text-xs text-gray-500 font-medium">Humidity</p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      <%= if greenhouse.desired_humidity do %>
+                        Target: {format_integer(greenhouse.desired_humidity)}%
+                      <% else %>
+                        <span class="italic">No target set</span>
+                      <% end %>
+                    </p>
                   </div>
 
-                  <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">Light:</span>
-                    <span class="text-sm font-medium text-gray-900">
-                      {greenhouse.current_light}%
-                    </span>
-                  </div>
-
-                  <div class="flex justify-between">
-                    <span class="text-sm text-gray-500">Events:</span>
-                    <span class="text-sm font-medium text-gray-900">
-                      {greenhouse.event_count}
-                    </span>
+                  <!-- Light -->
+                  <div class="text-center">
+                    <div class="bg-yellow-50 rounded-full p-3 w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <.icon name="hero-sun" class="h-6 w-6 text-yellow-500" />
+                    </div>
+                    <p class="text-2xl font-bold text-yellow-600">{format_integer(greenhouse.current_light)}%</p>
+                    <p class="text-xs text-gray-500 font-medium">Light</p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      <%= if greenhouse.desired_light do %>
+                        Target: {format_integer(greenhouse.desired_light)}%
+                      <% else %>
+                        <span class="italic">No target set</span>
+                      <% end %>
+                    </p>
                   </div>
                 </div>
 
-                <div class="mt-6">
-                  <.link
-                    navigate={~p"/greenhouse/#{greenhouse.id}"}
-                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    View Details
-                  </.link>
+                <!-- Activity Info -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                      <.icon name="hero-chart-bar" class="h-4 w-4 text-gray-500" />
+                      <span class="text-sm font-medium text-gray-700">Activity</span>
+                    </div>
+                    <span class="text-sm font-bold text-gray-900">{greenhouse.event_count} events</span>
+                  </div>
+                  <%= if greenhouse.last_updated do %>
+                    <div class="flex items-center space-x-2 mt-2">
+                      <.icon name="hero-clock" class="h-4 w-4 text-gray-400" />
+                      <span class="text-xs text-gray-500">
+                        Last updated: {format_time_ago(greenhouse.last_updated)}
+                      </span>
+                    </div>
+                  <% end %>
                 </div>
               </div>
-            </div>
+              </div>
+            </.link>
           <% end %>
         </div>
       </div>
@@ -245,6 +306,27 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
             value=""
             required
           />
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
+                <select name="country" id="country" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md">
+                  <option value="" disabled selected>Select a country...</option>
+                  <%= for country <- @countries do %>
+                    <option value={country}><%= country %></option>
+                  <% end %>
+                </select>
+              </div>
+              <div>
+                <label for="city" class="block text-sm font-medium text-gray-700">City</label>
+                <input type="text" name="city" id="city" placeholder="Enter city name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm">
+              </div>
+            </div>
+            <div class="text-sm text-gray-600">
+              <p>Select your country and enter the city name for weather-based automation.</p>
+              <p>This will automatically fetch weather data to simulate realistic greenhouse conditions.</p>
+            </div>
+          </div>
           <:actions>
             <.button class="w-full">Initialize Greenhouse</.button>
           </:actions>
@@ -282,6 +364,8 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
           desired_temperature: state.desired_temperature,
           desired_humidity: state.desired_humidity,
           desired_light: state.desired_light,
+          city: state.city,
+          country: state.country,
           status: determine_status(state),
           event_count: state.event_count || 0,
           last_updated: state.last_updated
@@ -296,6 +380,8 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
           desired_temperature: nil,
           desired_humidity: nil,
           desired_light: nil,
+          city: "Unknown",
+          country: "Unknown",
           status: :unknown,
           event_count: 0,
           last_updated: nil
@@ -328,12 +414,71 @@ defmodule RegulateGreenhouseWeb.DashboardLive do
   defp status_color_class(:inactive), do: "bg-gray-100 text-gray-800"
   defp status_color_class(_), do: "bg-red-100 text-red-800"
 
+  defp status_badge_class(:active), do: "bg-white/90 text-green-800 border border-green-200"
+  defp status_badge_class(:warning), do: "bg-white/90 text-yellow-800 border border-yellow-200"
+  defp status_badge_class(:inactive), do: "bg-white/90 text-gray-800 border border-gray-200"
+  defp status_badge_class(_), do: "bg-white/90 text-red-800 border border-red-200"
+
+  defp load_countries do
+    case API.get_countries() do
+      {:ok, countries} -> countries
+      {:error, _} -> 
+        # Fallback to a basic list if the Countries service is unavailable
+        ["United States", "Canada", "United Kingdom", "Germany", "France", "Italy", "Spain", "Netherlands", "Australia", "Japan", "China", "Brazil", "Mexico", "India", "South Africa"]
+    end
+  end
+
+  defp status_dot_class(:active), do: "bg-green-500"
+  defp status_dot_class(:warning), do: "bg-yellow-500"
+  defp status_dot_class(:inactive), do: "bg-gray-500"
+  defp status_dot_class(_), do: "bg-red-500"
+
+  defp format_status(:active), do: "Active"
+  defp format_status(:warning), do: "Needs Attention"
+  defp format_status(:inactive), do: "Inactive"
+  defp format_status(_), do: "Unknown"
+
   defp calculate_avg_temperature(greenhouses) do
     if length(greenhouses) > 0 do
       total = Enum.sum(Enum.map(greenhouses, & &1.current_temperature))
-      Float.round(total / length(greenhouses), 1)
+      trunc(total / length(greenhouses))
     else
       0
     end
+  end
+
+  # Helper function to format numeric values as integers
+  defp format_integer(value) when is_number(value), do: trunc(value)
+  defp format_integer(value), do: value
+
+  defp format_time_ago(nil), do: "Never"
+  defp format_time_ago(datetime) do
+    case DateTime.diff(DateTime.utc_now(), datetime, :second) do
+      seconds when seconds < 60 -> "#{seconds}s ago"
+      seconds when seconds < 3600 -> "#{div(seconds, 60)}m ago"
+      seconds when seconds < 86400 -> "#{div(seconds, 3600)}h ago"
+      seconds -> "#{div(seconds, 86400)}d ago"
+    end
+  end
+  
+  defp get_country_flag(country) do
+    case API.get_country_flag(country) do
+      {:ok, flag} -> flag
+      {:error, _} -> "🏳️"
+    end
+  end
+
+  defp display_location_info(greenhouse) do
+    # For now, directly get the flag from the country
+    flag = get_country_flag(greenhouse.country)
+    city = greenhouse.city || "Unknown city"
+    country = greenhouse.country || "Unknown country"
+
+    {:safe, """
+    <div class="flex items-center space-x-1">
+      <span class="text-base">#{flag}</span>
+      <span class="text-sm text-gray-600">#{city}, #{country}</span>
+    </div>
+    """}
   end
 end

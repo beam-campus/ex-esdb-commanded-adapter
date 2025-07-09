@@ -7,7 +7,7 @@ defmodule RegulateGreenhouse.ReadModels.GreenhouseReadModel do
   """
 
   @derive {Jason.Encoder, only: [
-    :greenhouse_id, :name, :location, 
+    :greenhouse_id, :name, :location, :city, :country,
     :current_temperature, :current_humidity, :current_light,
     :target_temperature, :target_humidity, :target_light,
     :status, :event_count, :created_at, :updated_at
@@ -17,6 +17,8 @@ defmodule RegulateGreenhouse.ReadModels.GreenhouseReadModel do
     :greenhouse_id,
     :name,
     :location,
+    :city,
+    :country,
     :current_temperature,
     :current_humidity, 
     :current_light,
@@ -33,6 +35,8 @@ defmodule RegulateGreenhouse.ReadModels.GreenhouseReadModel do
     greenhouse_id: String.t(),
     name: String.t(),
     location: String.t(),
+    city: String.t(),
+    country: String.t(),
     current_temperature: float() | nil,
     current_humidity: float() | nil,
     current_light: float() | nil,

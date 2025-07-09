@@ -8,13 +8,15 @@ defmodule RegulateGreenhouse.Commands do
     Command to initialize a new greenhouse.
     """
 
-    @enforce_keys [:greenhouse_id, :name, :location]
-    defstruct [:greenhouse_id, :name, :location, :target_temperature, :target_humidity]
+    @enforce_keys [:greenhouse_id, :name, :location, :city, :country]
+    defstruct [:greenhouse_id, :name, :location, :city, :country, :target_temperature, :target_humidity]
 
     @type t :: %__MODULE__{
             greenhouse_id: String.t(),
             name: String.t(),
             location: String.t(),
+            city: String.t(),
+            country: String.t(),
             target_temperature: float() | nil,
             target_humidity: float() | nil
           }

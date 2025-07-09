@@ -17,6 +17,8 @@ defmodule RegulateGreenhouse.Application do
       {Phoenix.PubSub, name: RegulateGreenhouse.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: RegulateGreenhouse.Finch},
+      # Start the APIs Countries service for country data
+      {Apis.Countries, [true]},
       # Start the cache service for read models
       RegulateGreenhouse.CacheService,
       # Start the infrastructure supervisor for reliability components
@@ -26,7 +28,9 @@ defmodule RegulateGreenhouse.Application do
       # Start the event-type-based projection manager
       RegulateGreenhouse.Projections.EventTypeProjectionManager,
       # Start the cache population service for startup cache rebuilding
-      RegulateGreenhouse.CachePopulationService
+      RegulateGreenhouse.CachePopulationService,
+      # Start the weather measurement service for automatic weather-based measurements
+      RegulateGreenhouse.WeatherMeasurementService
       # Start a worker by calling: RegulateGreenhouse.Worker.start_link(arg)
       # {RegulateGreenhouse.Worker, arg}
     ]

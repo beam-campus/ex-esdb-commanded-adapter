@@ -44,6 +44,8 @@ defmodule RegulateGreenhouse.MixProject do
       {:swoosh, "~> 1.5"},
       {:finch, "~> 0.13"},
       {:cachex, "~> 3.6"},
+      # APIs app for countries and external services
+      {:apis, in_umbrella: true},
       # Ensure ex_esdb_gater compiles first as it contains schemas
       {:ex_esdb_gater, path: "../../../../../ex-esdb-gater/system/", override: true},
       # Then ex_esdb which may depend on gater schemas

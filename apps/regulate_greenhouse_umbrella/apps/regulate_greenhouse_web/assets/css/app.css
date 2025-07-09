@@ -3,3 +3,113 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+
+/* Custom slider styles */
+.slider-red::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  cursor: pointer;
+  box-shadow: 0 0 2px 0 #555;
+  transition: background .15s ease-in-out;
+}
+
+.slider-red::-webkit-slider-thumb:hover {
+  background: #b91c1c;
+}
+
+.slider-red::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 2px 0 #555;
+  transition: background .15s ease-in-out;
+}
+
+.slider-red::-moz-range-thumb:hover {
+  background: #b91c1c;
+}
+
+.slider-blue::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #2563eb;
+  cursor: pointer;
+  box-shadow: 0 0 2px 0 #555;
+  transition: background .15s ease-in-out;
+}
+
+.slider-blue::-webkit-slider-thumb:hover {
+  background: #1d4ed8;
+}
+
+.slider-blue::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #2563eb;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 2px 0 #555;
+  transition: background .15s ease-in-out;
+}
+
+.slider-blue::-moz-range-thumb:hover {
+  background: #1d4ed8;
+}
+
+.slider-yellow::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #d97706;
+  cursor: pointer;
+  box-shadow: 0 0 2px 0 #555;
+  transition: background .15s ease-in-out;
+}
+
+.slider-yellow::-webkit-slider-thumb:hover {
+  background: #b45309;
+}
+
+.slider-yellow::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #d97706;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 2px 0 #555;
+  transition: background .15s ease-in-out;
+}
+
+.slider-yellow::-moz-range-thumb:hover {
+  background: #b45309;
+}
+
+/* Firefox specific styles */
+.slider-red::-moz-range-track {
+  background: #fecaca;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider-blue::-moz-range-track {
+  background: #bfdbfe;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider-yellow::-moz-range-track {
+  background: #fde68a;
+  height: 8px;
+  border-radius: 4px;
+}
