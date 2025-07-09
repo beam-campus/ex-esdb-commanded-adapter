@@ -237,33 +237,6 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
   end
 
 
-  @impl true
-  def handle_event("simulate_measurement", %{"type" => measurement_type}, socket) do
-    result = case measurement_type do
-      "temperature" -> 
-        value = 15 + :rand.uniform(20)
-        API.measure_temperature(socket.assigns.greenhouse_id, value)
-      "humidity" -> 
-        value = 30 + :rand.uniform(40)
-        API.measure_humidity(socket.assigns.greenhouse_id, value)
-      "light" -> 
-        value = 20 + :rand.uniform(60)
-        API.measure_light(socket.assigns.greenhouse_id, value)
-    end
-    
-    case result do
-      :ok ->
-        socket = 
-          socket
-          |> put_flash(:info, "Simulated #{measurement_type} measurement")
-          |> load_greenhouse_data()
-        {:noreply, socket}
-      
-      {:error, reason} ->
-        socket = put_flash(socket, :error, "Failed to simulate measurement: #{inspect(reason)}")
-        {:noreply, socket}
-    end
-  end
 
   @impl true
   def render(assigns) do
@@ -313,7 +286,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
                 <!-- Current Reading -->
                 <div class="mb-4">
                   <div class="text-3xl font-bold text-red-600">
-                    <%= @greenhouse.current_temperature %>°C
+                    <%= format_integer(@greenhouse.current_temperature) %>°C
                   </div>
                   <div class="text-sm text-gray-500">Current</div>
                 </div>
@@ -339,7 +312,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
                   </div>
                   <div class="text-center">
                     <div class="text-lg font-semibold text-red-600">
-                      Target: <%= @temp_temperature || @greenhouse.desired_temperature || 20 %>°C
+                      Target: <%= format_integer(@temp_temperature || @greenhouse.desired_temperature || 20) %>°C
                     </div>
                   </div>
                 </div>
@@ -355,7 +328,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
                 <!-- Current Reading -->
                 <div class="mb-4">
                   <div class="text-3xl font-bold text-blue-600">
-                    <%= @greenhouse.current_humidity %>%
+                    <%= format_integer(@greenhouse.current_humidity) %>%
                   </div>
                   <div class="text-sm text-gray-500">Current</div>
                 </div>
@@ -381,7 +354,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
                   </div>
                   <div class="text-center">
                     <div class="text-lg font-semibold text-blue-600">
-                      Target: <%= @temp_humidity || @greenhouse.desired_humidity || 50 %>%
+                      Target: <%= format_integer(@temp_humidity || @greenhouse.desired_humidity || 50) %>%
                     </div>
                   </div>
                 </div>
@@ -397,7 +370,7 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
                 <!-- Current Reading -->
                 <div class="mb-4">
                   <div class="text-3xl font-bold text-yellow-600">
-                    <%= @greenhouse.current_light %>%
+                    <%= format_integer(@greenhouse.current_light) %>%
                   </div>
                   <div class="text-sm text-gray-500">Current</div>
                 </div>
@@ -423,38 +396,10 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
                   </div>
                   <div class="text-center">
                     <div class="text-lg font-semibold text-yellow-600">
-                      Target: <%= @temp_light || @greenhouse.desired_light || 50 %>%
+                      Target: <%= format_integer(@temp_light || @greenhouse.desired_light || 50) %>%
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            
-            <!-- Simulation Controls -->
-            <div class="mt-8 border-t border-gray-200 pt-6">
-              <h3 class="text-lg font-medium text-gray-900 mb-4">Simulate Sensor Readings</h3>
-              <div class="flex flex-wrap gap-2">
-                <.button 
-                  phx-click="simulate_measurement" 
-                  phx-value-type="temperature"
-                  class="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Simulate Temperature
-                </.button>
-                <.button 
-                  phx-click="simulate_measurement" 
-                  phx-value-type="humidity"
-                  class="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Simulate Humidity
-                </.button>
-                <.button 
-                  phx-click="simulate_measurement" 
-                  phx-value-type="light"
-                  class="bg-yellow-600 hover:bg-yellow-700 text-white"
-                >
-                  Simulate Light
-                </.button>
               </div>
             </div>
           </div>
@@ -572,6 +517,10 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
   defp status_color_class(:inactive), do: "bg-gray-100 text-gray-800"
   defp status_color_class(_), do: "bg-red-100 text-red-800"
 
+  # Helper function to format numeric values as integers
+  defp format_integer(value) when is_number(value), do: trunc(value)
+  defp format_integer(value), do: value
+
 
 
   defp event_type_color("initialized:v1"), do: "bg-green-400"
@@ -598,22 +547,22 @@ defmodule RegulateGreenhouseWeb.GreenhouseLive do
     case event.event_type do
       "temperature_measured:v1" -> 
         temp = Map.get(data, :temperature) || "?"
-        "#{temp}°C"
+        "#{format_integer(temp)}°C"
       "humidity_measured:v1" -> 
         humidity = Map.get(data, :humidity) || "?"
-        "#{humidity}%"
+        "#{format_integer(humidity)}%"
       "light_measured:v1" -> 
         light = Map.get(data, :light) || "?"
-        "#{light}%"
+        "#{format_integer(light)}%"
       "desired_temperature_set:v1" -> 
         temp = Map.get(data, :target_temperature) || "?"
-        "Target: #{temp}°C"
+        "Target: #{format_integer(temp)}°C"
       "desired_humidity_set:v1" -> 
         humidity = Map.get(data, :target_humidity) || "?"
-        "Target: #{humidity}%"
+        "Target: #{format_integer(humidity)}%"
       "desired_light_set:v1" -> 
         light = Map.get(data, :target_light) || "?"
-        "Target: #{light}%"
+        "Target: #{format_integer(light)}%"
       "initialized:v1" -> 
         name = Map.get(data, :name) || "Unknown"
         location = Map.get(data, :location) || "Unknown"

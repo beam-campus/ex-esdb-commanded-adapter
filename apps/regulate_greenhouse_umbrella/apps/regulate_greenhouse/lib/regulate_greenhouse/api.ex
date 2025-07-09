@@ -21,12 +21,14 @@ defmodule RegulateGreenhouse.API do
   @doc """
   Creates a new greenhouse.
   """
-  @spec create_greenhouse(String.t(), String.t(), String.t(), float() | nil, float() | nil) ::
+  @spec create_greenhouse(String.t(), String.t(), String.t(), String.t(), String.t(), float() | nil, float() | nil) ::
           :ok | {:error, term()}
   def create_greenhouse(
         greenhouse_id,
         name,
         location,
+        city,
+        country,
         target_temperature \\ nil,
         target_humidity \\ nil
       ) do
@@ -36,6 +38,8 @@ defmodule RegulateGreenhouse.API do
       greenhouse_id: greenhouse_id,
       name: name,
       location: location,
+      city: city,
+      country: country,
       target_temperature: target_temperature,
       target_humidity: target_humidity
     }
@@ -65,7 +69,7 @@ defmodule RegulateGreenhouse.API do
     )
 
     # First create the greenhouse
-    case create_greenhouse(greenhouse_id, greenhouse_id, "Unknown") do
+    case create_greenhouse(greenhouse_id, greenhouse_id, "Unknown", "Unknown", "Unknown") do
       :ok ->
         Logger.info(
           "API: Greenhouse #{greenhouse_id} created successfully (measurements disabled)"
@@ -278,6 +282,150 @@ defmodule RegulateGreenhouse.API do
   end
 
   @doc """
+  Get all countries for country selection dropdown
+  """
+  def get_countries do
+    try do
+      countries = Apis.Countries.all_countries()
+      {:ok, countries |> Enum.sort()}
+    rescue
+      _ -> {:error, "Countries service unavailable"}
+    end
+  end
+
+  @doc """
+  Get country by country code
+  """
+  def get_country_by_code(country_code) do
+    try do
+      Apis.Countries.get_country_by_country_code(country_code)
+    rescue
+      _ -> {:error, "Countries service unavailable"}
+    end
+  end
+
+  @doc """
+  Get country information by name
+  """
+  def get_country_by_name(country_name) do
+    try do
+      # Start the countries service if not already started
+      {:ok, _} = Apis.Countries.start(true)
+      
+      # Get all countries and find by name
+      countries = Apis.Countries.all_countries()
+      
+      case countries do
+        country_names when is_list(country_names) ->
+          # The all_countries function returns only names, we need to get the full data
+          # Let's try to get the country by searching through the internal state
+          {:error, "Function needs to be updated to return full country data"}
+        
+        _ -> {:error, "Countries service unavailable"}
+      end
+    rescue
+      _ -> {:error, "Countries service unavailable"}
+    end
+  end
+  
+  @doc """
+  Get country flag emoji by name
+  """
+  def get_country_flag(country_name) do
+    try do
+      # Start the countries service if not already started
+      {:ok, _} = Apis.Countries.start(true)
+      
+      # Use a more direct approach to get the flag
+      case get_country_data_by_name(country_name) do
+        {:ok, country_data} ->
+          # Extract the flag emoji from the country data
+          flag = country_data["flag"] || "🏳️"
+          {:ok, flag}
+        
+        {:error, _} -> {:ok, "🏳️"}
+      end
+    rescue
+      _ -> {:ok, "🏳️"}
+    end
+  end
+  
+  @doc """
+  Get full country data by name - internal helper
+  """
+  defp get_country_data_by_name(country_name) do
+    try do
+      # Read the countries JSON file directly
+      case :code.priv_dir(:apis) do
+        {:error, _} -> {:error, "Could not find priv directory"}
+        app_path ->
+          file_path = Path.join([app_path, "countries.json"])
+          case File.read(file_path) do
+            {:error, _} -> {:error, "Could not read countries file"}
+            {:ok, content} ->
+              {:ok, countries} = Jason.decode(content)
+              
+              # Find the country by name
+              country = Enum.find(countries, fn country ->
+                country["name"]["common"] == country_name
+              end)
+              
+              if country do
+                {:ok, country}
+              else
+                {:error, "Country not found"}
+              end
+          end
+      end
+    rescue
+      _ -> {:error, "Failed to read country data"}
+    end
+  end
+
+  @doc """
+  Parse location coordinates from a greenhouse location string
+  """
+  def parse_location_coordinates(location) when is_binary(location) do
+    case String.split(location, ",") do
+      [lat_str, lon_str] ->
+        with {lat, ""} <- Float.parse(String.trim(lat_str)),
+             {lon, ""} <- Float.parse(String.trim(lon_str)) do
+          {:ok, {lat, lon}}
+        else
+          _ -> {:error, :invalid_coordinates}
+        end
+      
+      _ -> {:error, :invalid_format}
+    end
+  end
+  
+  def parse_location_coordinates(_), do: {:error, :invalid_location}
+
+  @doc """
+  Get enhanced greenhouse data with location information
+  """
+  def get_greenhouse_with_location(greenhouse_id) do
+    case get_greenhouse_state(greenhouse_id) do
+      {:ok, state} ->
+        case RegulateGreenhouse.CacheService.get_greenhouse(greenhouse_id) do
+          {:ok, greenhouse} when not is_nil(greenhouse) ->
+            # Parse coordinates
+            coordinates = case parse_location_coordinates(greenhouse.location) do
+              {:ok, {lat, lon}} -> %{latitude: lat, longitude: lon}
+              _ -> %{latitude: nil, longitude: nil}
+            end
+            
+            enhanced_state = Map.merge(state, coordinates)
+            {:ok, enhanced_state}
+          
+          _ -> {:ok, state}
+        end
+      
+      error -> error
+    end
+  end
+
+  @doc """
   Gets the current state of a greenhouse.
   """
   @spec get_greenhouse_state(String.t()) :: {:ok, map()} | {:error, term()}
@@ -295,6 +443,8 @@ defmodule RegulateGreenhouse.API do
            desired_temperature: read_model.target_temperature,
            desired_humidity: read_model.target_humidity,
            desired_light: read_model.target_light,
+           city: read_model.city,
+           country: read_model.country,
            last_updated: read_model.updated_at,
            event_count: read_model.event_count,
            status: read_model.status
@@ -324,45 +474,71 @@ defmodule RegulateGreenhouse.API do
 
     Logger.info("API: Constructed event_stream_id for greenhouse #{greenhouse_id}: #{event_stream_id}")
 
-    case ExESDBGater.API.get_events(store_id, event_stream_id, 0, limit) do
-      {:ok, events} when is_list(events) ->
-        Logger.debug("API: Found #{length(events)} events for greenhouse #{greenhouse_id}")
-        
-        # Reverse to get most recent first
-        events = Enum.reverse(events)
-        
-        # Convert ExESDB.Schema.EventRecord to a simplified map format for the UI
-        converted_events = Enum.map(events, fn event ->
-            # Convert struct data to map format for UI consumption
-            data =
-              case event.data do
-                %{__struct__: struct_name} = struct_data ->
-                  Logger.debug("API: Converting struct #{struct_name} to map")
-                  # Convert struct to map
-                  map_data = Map.from_struct(struct_data)
-                  Logger.debug("API: Converted data: #{inspect(map_data)}")
-                  map_data
+    # Read backward from the end of the stream to get the most recent events
+    # First, get the stream version to find the last event version
+    case ExESDBGater.API.get_version(store_id, event_stream_id) do
+      {:ok, last_version} when is_integer(last_version) and last_version >= 0 ->
+        # Now read backward from the last event
+        case ExESDBGater.API.get_events(store_id, event_stream_id, last_version, limit, :backward) do
+          {:ok, events} when is_list(events) ->
+            Logger.debug("API: Found #{length(events)} events for greenhouse #{greenhouse_id}")
+            
+            # Events are already in reverse chronological order (newest first) when reading backward
+            # No need to reverse them
+            
+            # Convert ExESDB.Schema.EventRecord to a simplified map format for the UI
+            converted_events = Enum.map(events, fn event ->
+                # Convert struct data to map format for UI consumption
+                data =
+                  case event.data do
+                    %{__struct__: struct_name} = struct_data ->
+                      Logger.debug("API: Converting struct #{struct_name} to map")
+                      # Convert struct to map
+                      map_data = Map.from_struct(struct_data)
+                      Logger.debug("API: Converted data: #{inspect(map_data)}")
+                      map_data
 
-                map_data when is_map(map_data) ->
-                  Logger.debug("API: Event data is already a map")
-                  map_data
+                    map_data when is_map(map_data) ->
+                      Logger.debug("API: Event data is already a map")
+                      map_data
 
-                other ->
-                  Logger.debug("API: Event data is other type: #{inspect(other)}")
-                  other
-              end
+                    other ->
+                      Logger.debug("API: Event data is other type: #{inspect(other)}")
+                      other
+                  end
 
-            %{
-              event_id: event.event_id,
-              event_type: event.event_type,
-              data: data,
-              metadata: event.metadata,
-              created: event.created,
-              event_number: event.event_number
-            }
-          end)
+                %{
+                  event_id: event.event_id,
+                  event_type: event.event_type,
+                  data: data,
+                  metadata: event.metadata,
+                  created: event.created,
+                  event_number: event.event_number
+                }
+              end)
 
-        converted_events
+            converted_events
+
+          {:error, :stream_not_found} ->
+            Logger.debug("API: Stream #{event_stream_id} not found")
+            []
+
+          {:error, reason} ->
+            Logger.warning(
+              "API: Failed to read events for stream #{event_stream_id}: #{inspect(reason)}"
+            )
+            []
+
+          resp ->
+            Logger.warning(
+              "API: Unexpected response when reading events for stream #{event_stream_id}...response: #{inspect(resp)}"
+            )
+            []
+        end
+
+      {:ok, -1} ->
+        Logger.debug("API: Stream #{event_stream_id} is empty")
+        []
 
       {:error, :stream_not_found} ->
         Logger.debug("API: Stream #{event_stream_id} not found")
@@ -370,16 +546,14 @@ defmodule RegulateGreenhouse.API do
 
       {:error, reason} ->
         Logger.warning(
-          "API: Failed to read events for stream #{event_stream_id}: #{inspect(reason)}"
+          "API: Failed to get stream version for #{event_stream_id}: #{inspect(reason)}"
         )
-
         []
 
       resp ->
         Logger.warning(
-          "API: Unexpected response when reading events for stream #{event_stream_id}...response: #{inspect(resp)}"
+          "API: Unexpected response when getting stream version for #{event_stream_id}...response: #{inspect(resp)}"
         )
-
         []
     end
   end

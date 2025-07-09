@@ -27,6 +27,8 @@ defmodule RegulateGreenhouse.Projections.Handlers.GreenhouseEventHandler do
       greenhouse_id: event.greenhouse_id,
       name: event.name,
       location: event.location,
+      city: event.city,
+      country: event.country,
       target_temperature: event.target_temperature,
       target_humidity: event.target_humidity,
       target_light: nil,

@@ -14,7 +14,9 @@ defmodule RegulateGreenhouse.APITest do
         API.create_greenhouse(
           greenhouse_id,
           "Test Greenhouse",
-          "Test Location",
+          "40.7128,-74.0060",
+          "New York",
+          "US",
           22.5,
           65.0
         )
@@ -35,7 +37,9 @@ defmodule RegulateGreenhouse.APITest do
       command = %InitializeGreenhouse{
         greenhouse_id: greenhouse_id,
         name: "Test Greenhouse",
-        location: "Test Location",
+        location: "40.7128,-74.0060",
+        city: "New York",
+        country: "US",
         target_temperature: 22.5,
         target_humidity: 65.0
       }
@@ -43,7 +47,9 @@ defmodule RegulateGreenhouse.APITest do
       # Verify the command structure
       assert command.greenhouse_id == greenhouse_id
       assert command.name == "Test Greenhouse"
-      assert command.location == "Test Location"
+      assert command.location == "40.7128,-74.0060"
+      assert command.city == "New York"
+      assert command.country == "US"
       assert command.target_temperature == 22.5
       assert command.target_humidity == 65.0
     end
@@ -57,7 +63,9 @@ defmodule RegulateGreenhouse.APITest do
       command = %InitializeGreenhouse{
         greenhouse_id: "test-123",
         name: "Test Greenhouse",
-        location: "Test Location"
+        location: "40.7128,-74.0060",
+        city: "New York",
+        country: "US"
       }
 
       # Execute command on aggregate
@@ -67,7 +75,7 @@ defmodule RegulateGreenhouse.APITest do
       assert %GreenhouseInitialized{} = event
       assert event.greenhouse_id == "test-123"
       assert event.name == "Test Greenhouse"
-      assert event.location == "Test Location"
+      assert event.location == "40.7128,-74.0060"
 
       # Apply the event to get new state
       new_state = Greenhouse.apply(initial_state, event)
