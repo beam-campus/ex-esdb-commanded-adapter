@@ -175,7 +175,7 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
   # Private helper functions
 
   # Schedule periodic PID re-registration with different intervals
-  defp schedule_reregistration(mode \\ :normal) do
+  defp schedule_reregistration(mode) do
     interval =
       case mode do
         # Fast initial re-registration
@@ -277,7 +277,6 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
       send(state.subscriber, {:events, converted_events})
     end
   end
-
 
   # Handle unknown messages
   defp handle_unknown_message(message, state) do

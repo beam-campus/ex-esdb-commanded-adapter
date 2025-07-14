@@ -9,7 +9,8 @@ defmodule ExESDB.Commanded.Adapter do
 
   alias ExESDBGater.API
 
-  alias ExESDB.Commanded.Adapter.{StreamHelper, SubscriptionProxy, SubscriptionProxySupervisor}
+  alias ExESDB.Commanded.Adapter.StreamHelper
+  alias ExESDB.Commanded.Adapter.SubscriptionProxySupervisor
   alias ExESDB.Commanded.AggregateListenerSupervisor
 
   alias ExESDB.Commanded.Mapper
@@ -266,68 +267,48 @@ defmodule ExESDB.Commanded.Adapter do
     prefix = stream_prefix(adapter_meta)
     full_stream_id = prefix <> stream_uuid
 
-    # Normalize start_version for ExESDB 0-based indexing
-    # Commanded uses 1-based versioning, ExESDB uses 0-based
-    normalized_start_version = case start_version do
-      0 -> 0  # Keep 0 as 0 (start from beginning)
-      version when version > 0 -> version - 1  # Convert 1-based to 0-based
-      version -> version  # Negative versions (like -1 for latest) stay as-is
-    end
+    normalized_start_version =
+      normalize_start_version(start_version)
 
-    Logger.info(
-      "ADAPTER: stream_forward for #{full_stream_id}, start_version: #{start_version} -> #{normalized_start_version}, batch_size: #{read_batch_size}"
-    )
-
-    case API.get_events(store, full_stream_id, normalized_start_version, read_batch_size, :forward) do
+    case API.get_events(
+           store,
+           full_stream_id,
+           normalized_start_version,
+           read_batch_size,
+           :forward
+         ) do
       {:ok, events} ->
-        Logger.info(
-          "ADAPTER: stream_forward found #{length(events)} events for #{full_stream_id}"
-        )
-
-        # Ensure we return an empty enumerable for no events, not nil
-        case events do
-          [] ->
-            Logger.info("ADAPTER: stream_forward returning empty stream for #{full_stream_id}")
-            []
-
-          events when is_list(events) ->
-            Logger.info(
-              "ADAPTER: stream_forward converting #{length(events)} events for #{full_stream_id}"
-            )
-            
-            # Log first and last event for debugging
-            first_event = List.first(events)
-            last_event = List.last(events)
-            Logger.debug("ADAPTER: First event: #{inspect(first_event)}")
-            Logger.debug("ADAPTER: Last event: #{inspect(last_event)}")
-
-            converted_events = events |> Stream.map(&Mapper.to_recorded_event/1)
-            
-            # Log converted events
-            converted_list = Enum.to_list(converted_events)
-            if length(converted_list) > 0 do
-              first_converted = List.first(converted_list)
-              last_converted = List.last(converted_list)
-              Logger.info("ADAPTER: Converted events stream_versions: #{first_converted.stream_version} to #{last_converted.stream_version}")
-              
-              # Debug first few events to check data integrity
-              Enum.take(converted_list, 3)
-              |> Enum.with_index()
-              |> Enum.each(fn {event, index} ->
-                Logger.debug("ADAPTER: Event #{index}: type=#{event.event_type}, data=#{inspect(event.data)}")
-              end)
-            end
-            
-            converted_list
-        end
+        events
+        |> map_events()
 
       {:error, :stream_not_found} ->
-        Logger.info("ADAPTER: stream_forward - stream not found: #{full_stream_id}")
         {:error, :stream_not_found}
 
       {:error, reason} ->
-        Logger.error("ADAPTER: stream_forward error for #{full_stream_id}: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  defp map_events(events) do
+    case events do
+      [] ->
+        []
+
+      events when is_list(events) ->
+        events
+        |> Stream.map(&Mapper.to_recorded_event/1)
+        |> Enum.to_list()
+    end
+  end
+
+  defp normalize_start_version(start_version) do
+    case start_version do
+      # Keep 0 as 0 (start from beginning)
+      0 -> 0
+      # Convert 1-based to 0-based
+      version when version > 0 -> version - 1
+      # Negative versions (like -1 for latest) stay as-is
+      version -> version
     end
   end
 
@@ -374,15 +355,14 @@ defmodule ExESDB.Commanded.Adapter do
     # Create a transient subscription proxy to handle event conversion
     subscriber = self()
 
-    proxy_pid =
-      SubscriptionProxySupervisor.start_proxy(%{
-        name: "transient_#{:erlang.unique_integer()}",
-        subscriber: subscriber,
-        stream: stream,
-        store: store,
-        type: type,
-        selector: selector
-      })
+    SubscriptionProxySupervisor.start_proxy(%{
+      name: "transient_#{:erlang.unique_integer()}",
+      subscriber: subscriber,
+      stream: stream,
+      store: store,
+      type: type,
+      selector: selector
+    })
 
     # The SubscriptionProxy will register itself with the store during initialization
     :ok
@@ -392,13 +372,15 @@ defmodule ExESDB.Commanded.Adapter do
   defp create_aggregate_listener(adapter_meta, stream) do
     store = store_id(adapter_meta)
     prefix = stream_prefix(adapter_meta)
-    target_stream_id = prefix <> stream  # This is the stream to filter for
+    # This is the stream to filter for
+    target_stream_id = prefix <> stream
     subscriber = self()
 
     # Create a listener config
     listener_config = %{
       store_id: store,
-      stream_id: target_stream_id,  # Filter for this specific stream
+      # Filter for this specific stream
+      stream_id: target_stream_id,
       subscriber: subscriber,
       pubsub_name: pubsub_name(),
       # Disable historical replay for transient subscriptions to prevent duplicates
@@ -408,7 +390,10 @@ defmodule ExESDB.Commanded.Adapter do
 
     case AggregateListenerSupervisor.start_listener(listener_config) do
       {:ok, _listener_pid} ->
-        Logger.info("ADAPTER: Started AggregateListener for stream '#{target_stream_id}' on topic '#{store}:$all'")
+        Logger.info(
+          "ADAPTER: Started AggregateListener for stream '#{target_stream_id}' on topic '#{store}:$all'"
+        )
+
         :ok
 
       {:error, reason} ->

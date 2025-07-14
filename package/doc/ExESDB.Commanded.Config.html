@@ -5,10 +5,10 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.1.0">
+    <meta name="project" content="ex_esdb_commanded v0.1.3">
 
 
-    <title>ExESDB.Commanded.Config — ex_esdb_commanded v0.1.0</title>
+    <title>ExESDB.Commanded.Config — ex_esdb_commanded v0.1.3</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.1.0
+          v0.1.3
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.Config</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.1.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.1.3)</small>
 
     </h1>
 
@@ -490,11 +490,11 @@ internal naming conventions.</p>
 
       </div>
 
-<p>Validates and normalizes configuration for ExESDB.Commanded.Adapter.</p><h2 id="validate/1-options" class="section-heading"><a href="#validate/1-options" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Options</span></h2><ul><li><code class="inline">:store_id</code> - ExESDB store identifier (required)</li><li><code class="inline">:stream_prefix</code> - Prefix for all streams (default: &quot;&quot;)</li><li><code class="inline">:serializer</code> - Serialization module (default: Jason)</li><li><code class="inline">:use_libcluster</code> - Whether to use libcluster for node discovery (default: true)</li><li><code class="inline">:connection_timeout</code> - Connection timeout in ms (default: 10_000)</li><li><code class="inline">:retry_attempts</code> - Number of retry attempts for failed operations (default: 3)</li><li><code class="inline">:retry_backoff</code> - Backoff interval between retries in ms (default: 1_000)</li></ul><h2 id="validate/1-examples" class="section-heading"><a href="#validate/1-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="nc">ExESDB.Commanded.Config</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="6013149950-1">(</span><span class="p" data-group-id="6013149950-2">[</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p" data-group-id="6013149950-2">]</span><span class="p" data-group-id="6013149950-1">)</span><span class="w">
-</span><span class="p" data-group-id="6013149950-3">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6013149950-4">%{</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p">,</span><span class="w"> </span><span class="ss">stream_prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">...</span><span class="p" data-group-id="6013149950-4">}</span><span class="p" data-group-id="6013149950-3">}</span><span class="w">
+<p>Validates and normalizes configuration for ExESDB.Commanded.Adapter.</p><h2 id="validate/1-options" class="section-heading"><a href="#validate/1-options" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Options</span></h2><ul><li><code class="inline">:store_id</code> - ExESDB store identifier (required)</li><li><code class="inline">:stream_prefix</code> - Prefix for all streams (default: &quot;&quot;)</li><li><code class="inline">:serializer</code> - Serialization module (default: Jason)</li><li><code class="inline">:use_libcluster</code> - Whether to use libcluster for node discovery (default: true)</li><li><code class="inline">:connection_timeout</code> - Connection timeout in ms (default: 10_000)</li><li><code class="inline">:retry_attempts</code> - Number of retry attempts for failed operations (default: 3)</li><li><code class="inline">:retry_backoff</code> - Backoff interval between retries in ms (default: 1_000)</li></ul><h2 id="validate/1-examples" class="section-heading"><a href="#validate/1-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="nc">ExESDB.Commanded.Config</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="1035095683-1">(</span><span class="p" data-group-id="1035095683-2">[</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p" data-group-id="1035095683-2">]</span><span class="p" data-group-id="1035095683-1">)</span><span class="w">
+</span><span class="p" data-group-id="1035095683-3">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1035095683-4">%{</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p">,</span><span class="w"> </span><span class="ss">stream_prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">...</span><span class="p" data-group-id="1035095683-4">}</span><span class="p" data-group-id="1035095683-3">}</span><span class="w">
 
-</span><span class="gp unselectable">iex&gt; </span><span class="nc">ExESDB.Commanded.Config</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="6013149950-5">(</span><span class="p" data-group-id="6013149950-6">[</span><span class="p" data-group-id="6013149950-6">]</span><span class="p" data-group-id="6013149950-5">)</span><span class="w">
-</span><span class="p" data-group-id="6013149950-7">{</span><span class="ss">:error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6013149950-8">{</span><span class="ss">:missing_required_config</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6013149950-9">[</span><span class="ss">:store_id</span><span class="p" data-group-id="6013149950-9">]</span><span class="p" data-group-id="6013149950-8">}</span><span class="p" data-group-id="6013149950-7">}</span></code></pre>
+</span><span class="gp unselectable">iex&gt; </span><span class="nc">ExESDB.Commanded.Config</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="1035095683-5">(</span><span class="p" data-group-id="1035095683-6">[</span><span class="p" data-group-id="1035095683-6">]</span><span class="p" data-group-id="1035095683-5">)</span><span class="w">
+</span><span class="p" data-group-id="1035095683-7">{</span><span class="ss">:error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1035095683-8">{</span><span class="ss">:missing_required_config</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1035095683-9">[</span><span class="ss">:store_id</span><span class="p" data-group-id="1035095683-9">]</span><span class="p" data-group-id="1035095683-8">}</span><span class="p" data-group-id="1035095683-7">}</span></code></pre>
   </section>
 </section>
 <section class="detail" id="validate_libcluster_config/1">
@@ -553,9 +553,9 @@ internal naming conventions.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.3" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.3">Hex Preview</a>
 
           </span>
 

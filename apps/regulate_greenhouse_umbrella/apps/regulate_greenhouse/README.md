@@ -1,3 +1,0 @@
-# RegulateGreenhouse
-
-**TODO: Add description**
