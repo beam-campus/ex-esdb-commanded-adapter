@@ -4,7 +4,7 @@ defmodule ExESDB.Commanded.MixProject do
 
   @app_name :ex_esdb_commanded
   @elixir_version "~> 1.17"
-  @version "0.1.4"
+  @version "0.2.0"
   @source_url "https://github.com/beam-campus/ex-esdb-commanded-adapter"
   #  @homepage_url "https://github.com/beam-campus/ex-esdb"
   @docs_url "https://hexdocs.pm/ex_esdb_commanded"

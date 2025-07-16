@@ -149,8 +149,8 @@ defmodule ExESDB.Commanded.Adapter do
 
     # Start supervisors for managing subscriptions
     child_specs = [
-      {AggregateListenerSupervisor, []},
-      {SubscriptionProxySupervisor, []}
+      {AggregateListenerSupervisor, [store_id: store_id]},
+      {SubscriptionProxySupervisor, [store_id: store_id]}
     ]
 
     {:ok, child_specs, adapter_meta}

@@ -43,7 +43,8 @@ defmodule ExESDB.Commanded.AggregateListener do
   """
   @spec start_link(listener_config()) :: {:ok, pid()} | {:error, term()}
   def start_link(config) do
-    GenServer.start_link(__MODULE__, config)
+    process_name = generate_process_name(config)
+    GenServer.start_link(__MODULE__, config, name: process_name)
   end
 
   @doc """
@@ -52,7 +53,8 @@ defmodule ExESDB.Commanded.AggregateListener do
   """
   @spec start(listener_config()) :: {:ok, pid()} | {:error, term()}
   def start(config) do
-    GenServer.start(__MODULE__, config)
+    process_name = generate_process_name(config)
+    GenServer.start(__MODULE__, config, name: process_name)
   end
 
   @doc """
@@ -92,7 +94,7 @@ defmodule ExESDB.Commanded.AggregateListener do
       historical_replay_done: false
     }
 
-    Logger.info("AggregateListener: Started for stream '#{stream_id}' on topic '#{topic}'")
+    Logger.info("AggregateListener[#{Map.get(config, :store_id, :unknown)}]: Started for stream '#{stream_id}' on topic '#{topic}'")
 
     # If we should replay historical events, do it after initialization
     state =
@@ -117,7 +119,7 @@ defmodule ExESDB.Commanded.AggregateListener do
       send(state.subscriber, {:events, filtered_events})
 
       Logger.debug(
-        "AggregateListener: Forwarded #{length(filtered_events)} events for stream '#{state.stream_id}'"
+        "AggregateListener[#{state.store_id}]: Forwarded #{length(filtered_events)} events for stream '#{state.stream_id}'"
       )
     end
 
@@ -139,12 +141,12 @@ defmodule ExESDB.Commanded.AggregateListener do
 
   @impl GenServer
   def handle_info(:replay_historical_events, state) do
-    Logger.info("AggregateListener: Replaying historical events for stream '#{state.stream_id}'")
+    Logger.info("AggregateListener[#{state.store_id}]: Replaying historical events for stream '#{state.stream_id}'")
 
     case replay_historical_events(state) do
       :ok ->
         Logger.info(
-          "AggregateListener: Historical replay completed for stream '#{state.stream_id}'"
+          "AggregateListener[#{state.store_id}]: Historical replay completed for stream '#{state.stream_id}'"
         )
 
         new_state = %{state | historical_replay_done: true}
@@ -152,7 +154,7 @@ defmodule ExESDB.Commanded.AggregateListener do
 
       {:error, reason} ->
         Logger.error(
-          "AggregateListener: Failed to replay historical events for stream '#{state.stream_id}': #{inspect(reason)}"
+          "AggregateListener[#{state.store_id}]: Failed to replay historical events for stream '#{state.stream_id}': #{inspect(reason)}"
         )
 
         # Continue anyway, but mark as done to avoid blocking real-time events
@@ -163,7 +165,7 @@ defmodule ExESDB.Commanded.AggregateListener do
 
   @impl GenServer
   def handle_info(:unsubscribe, state) do
-    Logger.info("AggregateListener: Unsubscribing from '#{state.topic}'")
+    Logger.info("AggregateListener[#{state.store_id}]: Unsubscribing from '#{state.topic}'")
     :ok = PubSub.unsubscribe(state.pubsub_name, state.topic)
     {:stop, :normal, state}
   end
@@ -171,7 +173,7 @@ defmodule ExESDB.Commanded.AggregateListener do
   @impl GenServer
   def handle_info({:DOWN, _ref, :process, pid, reason}, %{subscriber: pid} = state) do
     Logger.info(
-      "AggregateListener: Subscriber process #{inspect(pid)} died (#{inspect(reason)}), stopping listener"
+      "AggregateListener[#{state.store_id}]: Subscriber process #{inspect(pid)} died (#{inspect(reason)}), stopping listener"
     )
 
     {:stop, :normal, state}
@@ -179,7 +181,7 @@ defmodule ExESDB.Commanded.AggregateListener do
 
   @impl GenServer
   def handle_info(msg, state) do
-    Logger.debug("AggregateListener: Received unexpected message: #{inspect(msg)}")
+    Logger.debug("AggregateListener[#{state.store_id}]: Received unexpected message: #{inspect(msg)}")
     {:noreply, state}
   end
 
@@ -204,7 +206,7 @@ defmodule ExESDB.Commanded.AggregateListener do
   @impl GenServer
   def terminate(reason, state) do
     Logger.info(
-      "AggregateListener: Terminating for stream '#{state.stream_id}' (reason: #{inspect(reason)})"
+      "AggregateListener[#{state.store_id}]: Terminating for stream '#{state.stream_id}' (reason: #{inspect(reason)})"
     )
 
     :ok = unsubscribe(state.pubsub_name, state.topic)
@@ -224,6 +226,21 @@ defmodule ExESDB.Commanded.AggregateListener do
   end
 
   # Private functions
+
+  # Generate a store-aware process name to avoid conflicts in umbrella applications
+  @spec generate_process_name(listener_config()) :: {:via, module(), term()}
+  defp generate_process_name(config) do
+    store_id = Map.fetch!(config, :store_id)
+    stream_id = Map.fetch!(config, :stream_id)
+    subscriber = Map.fetch!(config, :subscriber)
+    
+    # Create a unique identifier for this listener within the store
+    listener_key = {store_id, stream_id, subscriber}
+    
+    # Use a store-specific Registry via tuple
+    registry_name = Module.concat([ExESDB.Commanded.AggregateListenerSupervisor, store_id, Registry])
+    {:via, Registry, {registry_name, {:process, listener_key}}}
+  end
 
   @spec filter_and_transform_events(
           events :: [ExESDB.Schema.EventRecord.t()],

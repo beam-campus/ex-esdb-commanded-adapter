@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.1.4">
+    <meta name="project" content="ex_esdb_commanded v0.2.0">
 
 
-    <title>CHANGELOG — ex_esdb_commanded v0.1.4</title>
+    <title>Changelog — ex_esdb_commanded v0.2.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/changelog.html" />
 
-    <script defer src="dist/sidebar_items-E85856A7.js"></script>
+    <script defer src="dist/sidebar_items-158211FA.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.1.4
+          v0.2.0
         </div>
       </div>
     </div>
@@ -76,13 +76,28 @@ ex_esdb_commanded
 
 <div id="top-content">
   <div class="heading-with-actions top-heading">
-    <h1>CHANGELOG</h1>
+    <h1>Changelog</h1>
 
 
   </div>
 
 
+<p>All notable changes to this project will be documented in this file.</p><p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
+and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p><h2 id="unreleased" class="section-heading"><a href="#unreleased" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">[Unreleased]</span></h2><h3 id="added" class="section-heading"><a href="#added" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Added</span></h3><ul><li>Store-aware naming for supervisors and processes to support umbrella applications</li><li>Enhanced logging with store identification for better debugging</li><li>Comprehensive test suite for store-aware functionality</li></ul><h3 id="changed" class="section-heading"><a href="#changed" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Changed</span></h3><ul><li><strong>BREAKING</strong>: <code class="inline">AggregateListenerSupervisor</code> now requires <code class="inline">store_id</code> parameter</li><li><strong>BREAKING</strong>: <code class="inline">SubscriptionProxySupervisor</code> now requires <code class="inline">store_id</code> parameter</li><li><strong>BREAKING</strong>: <code class="inline">AggregateListenerSupervisor.stop_listener/1</code> now requires <code class="inline">store_id</code> as first parameter: <code class="inline">stop_listener(store_id, pid)</code></li><li><strong>BREAKING</strong>: <code class="inline">AggregateListenerSupervisor.stats/0</code> now requires <code class="inline">store_id</code> parameter: <code class="inline">stats(store_id)</code></li><li><strong>BREAKING</strong>: <code class="inline">AggregateListenerSupervisor.list_listeners/0</code> now requires <code class="inline">store_id</code> parameter: <code class="inline">list_listeners(store_id)</code></li><li><strong>BREAKING</strong>: <code class="inline">SubscriptionProxySupervisor.stop_proxy/1</code> now requires <code class="inline">store_id</code> as first parameter: <code class="inline">stop_proxy(store_id, pid)</code></li><li><strong>BREAKING</strong>: <code class="inline">SubscriptionProxySupervisor.list_proxies/0</code> now requires <code class="inline">store_id</code> parameter: <code class="inline">list_proxies(store_id)</code></li><li><code class="inline">AggregateListener</code> processes now use store-specific Registry naming</li><li><code class="inline">SubscriptionProxy</code> processes now use global names with store prefixes</li><li>All supervisors and processes now include store information in log messages</li><li>Enhanced supervision tree isolation between different stores</li></ul><h3 id="fixed" class="section-heading"><a href="#fixed" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Fixed</span></h3><ul><li>Naming conflicts when multiple stores are used in umbrella applications</li><li>Process registry conflicts between different event stores</li><li>Supervisor name clashes in multi-store environments</li></ul><h3 id="technical-details" class="section-heading"><a href="#technical-details" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Technical Details</span></h3><h4>Store-Aware Supervisor Naming</h4><ul><li><code class="inline">AggregateListenerSupervisor</code> instances now use names like <code class="inline">ExESDB.Commanded.AggregateListenerSupervisor.StoreId</code></li><li><code class="inline">SubscriptionProxySupervisor</code> instances now use names like <code class="inline">ExESDB.Commanded.Adapter.SubscriptionProxySupervisor.StoreId</code></li><li>Each store gets its own Registry: <code class="inline">ExESDB.Commanded.AggregateListenerSupervisor.StoreId.Registry</code></li></ul><h4>Process Naming</h4><ul><li><code class="inline">AggregateListener</code> processes use store-specific Registry via tuples</li><li><code class="inline">SubscriptionProxy</code> processes use global names with store prefixes: <code class="inline">{:global, {store_id, name}}</code></li></ul><h4>Logging Improvements</h4><ul><li>All log messages now include store identification</li><li>Format: <code class="inline">AggregateListener[store_id]: message</code> and <code class="inline">SubscriptionProxy[name] (store: store_id): message</code></li></ul><h4>Migration Guide</h4><p><strong>Before:</strong></p><pre><code class="makeup elixir" translate="no"><span class="n">child_specs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="3497922616-1">[</span><span class="w">
+  </span><span class="p" data-group-id="3497922616-2">{</span><span class="nc">AggregateListenerSupervisor</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3497922616-3">[</span><span class="p" data-group-id="3497922616-3">]</span><span class="p" data-group-id="3497922616-2">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="3497922616-4">{</span><span class="nc">SubscriptionProxySupervisor</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3497922616-5">[</span><span class="p" data-group-id="3497922616-5">]</span><span class="p" data-group-id="3497922616-4">}</span><span class="w">
+</span><span class="p" data-group-id="3497922616-1">]</span></code></pre><p><strong>After:</strong></p><pre><code class="makeup elixir" translate="no"><span class="n">child_specs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="0255066218-1">[</span><span class="w">
+  </span><span class="p" data-group-id="0255066218-2">{</span><span class="nc">AggregateListenerSupervisor</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0255066218-3">[</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p" data-group-id="0255066218-3">]</span><span class="p" data-group-id="0255066218-2">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="0255066218-4">{</span><span class="nc">SubscriptionProxySupervisor</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0255066218-5">[</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p" data-group-id="0255066218-5">]</span><span class="p" data-group-id="0255066218-4">}</span><span class="w">
+</span><span class="p" data-group-id="0255066218-1">]</span></code></pre><p><strong>API Changes:</strong></p><pre><code class="makeup elixir" translate="no"><span class="c1"># Before</span><span class="w">
+</span><span class="nc">AggregateListenerSupervisor</span><span class="o">.</span><span class="n">stop_listener</span><span class="p" data-group-id="4268315702-1">(</span><span class="n">pid</span><span class="p" data-group-id="4268315702-1">)</span><span class="w">
+</span><span class="nc">AggregateListenerSupervisor</span><span class="o">.</span><span class="n">stats</span><span class="p" data-group-id="4268315702-2">(</span><span class="p" data-group-id="4268315702-2">)</span><span class="w">
+</span><span class="nc">AggregateListenerSupervisor</span><span class="o">.</span><span class="n">list_listeners</span><span class="p" data-group-id="4268315702-3">(</span><span class="p" data-group-id="4268315702-3">)</span><span class="w">
 
+</span><span class="c1"># After</span><span class="w">
+</span><span class="nc">AggregateListenerSupervisor</span><span class="o">.</span><span class="n">stop_listener</span><span class="p" data-group-id="4268315702-4">(</span><span class="ss">:my_store</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p" data-group-id="4268315702-4">)</span><span class="w">
+</span><span class="nc">AggregateListenerSupervisor</span><span class="o">.</span><span class="n">stats</span><span class="p" data-group-id="4268315702-5">(</span><span class="ss">:my_store</span><span class="p" data-group-id="4268315702-5">)</span><span class="w">
+</span><span class="nc">AggregateListenerSupervisor</span><span class="o">.</span><span class="n">list_listeners</span><span class="p" data-group-id="4268315702-6">(</span><span class="ss">:my_store</span><span class="p" data-group-id="4268315702-6">)</span></code></pre><h2 id="0-1-4-previous-release" class="section-heading"><a href="#0-1-4-previous-release" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">[0.1.4] - Previous Release</span></h2><h3 id="added-1" class="section-heading"><a href="#added-1" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Added</span></h3><ul><li>Initial release functionality</li><li>Basic ExESDB adapter for Commanded</li><li>AggregateListener and SubscriptionProxy processes</li><li>Support for event streaming and subscriptions</li></ul>
 
 </div>
 
@@ -116,11 +131,11 @@ Getting Started
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.4" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.2.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.4">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.2.0">Hex Preview</a>
 
-              (<a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.4/show/CHANGELOG.md">current file</a>)
+              (<a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.2.0/show/CHANGELOG.md">current file</a>)
 
           </span>
 
