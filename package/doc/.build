@@ -7,6 +7,7 @@ ExESDB.Commanded.Adapter.html
 ExESDB.Commanded.AggregateListener.html
 ExESDB.Commanded.AggregateListenerSupervisor.html
 ExESDB.Commanded.Config.html
+ExESDB.Commanded.EventTypeMapper.html
 ExESDB.Commanded.Mapper.html
 adr.html
 api-reference.html
@@ -18,10 +19,11 @@ dist/lato-latin-700-normal-2XVSBPG4.woff2
 dist/lato-latin-ext-400-normal-N27NCBWW.woff2
 dist/lato-latin-ext-700-normal-Q2L5DVMW.woff2
 dist/remixicon-QPNJX265.woff2
-dist/search_data-9DB28C13.js
-dist/sidebar_items-158211FA.js
+dist/search_data-8AB46E4A.js
+dist/sidebar_items-03729033.js
 event-sourcing-with-cqrs.html
 getting-started.html
 index.html
 readme.html
 search.html
+test-suite.html

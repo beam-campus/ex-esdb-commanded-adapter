@@ -4,6 +4,15 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
 
   This process is supervised and maintains its registration with the ExESDB store,
   ensuring event delivery continues even after process restarts.
+
+  There is an aggressive re-registration process that runs periodically 
+  to ensure the subscription PID is current. This is mainly to deal with 
+  new leader election scenarios where the emitter processes are restarted.
+
+  We should think of a mechanism to handle this better in the future.
+
+
+
   """
 
   use GenServer
@@ -78,7 +87,9 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
     # Register with ExESDB store
     case register_with_store(state) do
       :ok ->
-        Logger.info("SubscriptionProxy[#{name}] (store: #{store}): Started and registered with store")
+        Logger.info(
+          "SubscriptionProxy[#{name}] (store: #{store}): Started and registered with store"
+        )
 
         # Schedule initial aggressive re-registration to ensure immediate propagation
         schedule_reregistration(:initial)
@@ -102,7 +113,10 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
   end
 
   def handle_info(:unsubscribe, state) do
-    Logger.info("SubscriptionProxy[#{state.name}] (store: #{state.store}): Received unsubscribe message")
+    Logger.info(
+      "SubscriptionProxy[#{state.name}] (store: #{state.store}): Received unsubscribe message"
+    )
+
     {:stop, :normal, state}
   end
 
@@ -136,7 +150,9 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
   end
 
   def handle_info(:reregister_pid, state) do
-    Logger.debug("SubscriptionProxy[#{state.name}] (store: #{state.store}): Periodic PID re-registration")
+    Logger.debug(
+      "SubscriptionProxy[#{state.name}] (store: #{state.store}): Periodic PID re-registration"
+    )
 
     # Re-register with store to ensure PID is current
     case register_with_store(state) do
@@ -163,7 +179,9 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
 
   @impl GenServer
   def terminate(reason, state) do
-    Logger.info("SubscriptionProxy[#{state.name}] (store: #{state.store}): Terminating: #{inspect(reason)}")
+    Logger.info(
+      "SubscriptionProxy[#{state.name}] (store: #{state.store}): Terminating: #{inspect(reason)}"
+    )
 
     if state.subscription_registered do
       handle_unsubscribe(state)
@@ -178,7 +196,7 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
   defp generate_process_name(metadata) do
     store = Map.fetch!(metadata, :store)
     name = Map.get(metadata, :name, "proxy_#{:erlang.unique_integer()}")
-    
+
     # Use global naming with store prefix to avoid conflicts
     {:global, {store, name}}
   end
@@ -201,28 +219,14 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
   defp register_with_store(state) do
     # Update the subscription with our new PID using save_subscription
     # This will either create a new subscription or update the existing one with our PID
-    case API.save_subscription(
-           state.store,
-           state.type,
-           state.selector,
-           state.name,
-           state.start_version,
-           self()
-         ) do
-      :ok ->
-        Logger.info(
-          "SubscriptionProxy[#{state.name}]: Updated subscription PID to #{inspect(self())}"
-        )
-
-        :ok
-
-      {:error, reason} ->
-        Logger.error(
-          "SubscriptionProxy[#{state.name}]: Failed to update subscription PID: #{inspect(reason)}"
-        )
-
-        {:error, reason}
-    end
+    API.save_subscription(
+      state.store,
+      state.type,
+      state.selector,
+      state.name,
+      state.start_version,
+      self()
+    )
   end
 
   # Handle subscription cleanup
@@ -256,6 +260,10 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
         "ADAPTER PROXY [#{state.selector}]: Sending converted event #{recorded_event.event_type} to subscriber #{inspect(state.subscriber)}"
       )
 
+      Logger.debug(
+        "ADAPTER PROXY [#{state.selector}]: About to send event to #{inspect(state.subscriber)}"
+      )
+
       send(state.subscriber, {:events, [recorded_event]})
       Logger.info("ADAPTER PROXY [#{state.selector}]: Event sent successfully")
     else
@@ -267,6 +275,7 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
 
   # Handle multiple events
   defp handle_multiple_events(events, state) do
+    Logger.info("ADAPTER PROXY [#{state.selector}]: Received #{length(events)} events")
     # Filter events if target_stream_id is specified
     filtered_events =
       case state.target_stream_id do
@@ -282,8 +291,15 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxy do
       end
 
     if length(filtered_events) > 0 do
+      Logger.info(
+        "ADAPTER PROXY [#{state.selector}]: Forwarding #{length(filtered_events)} filtered events to subscriber #{inspect(state.subscriber)}"
+      )
+
       converted_events = EventConverter.convert_events(filtered_events)
       send(state.subscriber, {:events, converted_events})
+      Logger.info("ADAPTER PROXY [#{state.selector}]: Multiple events sent successfully")
+    else
+      Logger.debug("ADAPTER PROXY [#{state.selector}]: All #{length(events)} events filtered out")
     end
   end
 

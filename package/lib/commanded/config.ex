@@ -1,239 +1,280 @@
 defmodule ExESDB.Commanded.Config do
   @moduledoc """
-  Configuration validation and normalization for ExESDB.Commanded.Adapter.
+  Simple configuration for ExESDB.Commanded.Adapter.
   
-  This module provides standardized configuration handling with proper validation,
-  error handling, and normalization to ensure consistent behavior between Commanded
-  and ExESDB systems.
+  Expects configuration in the standard Commanded format:
+  
+      config :my_otp_app, MyApp.CommandedApp,
+        event_store: [
+          event_type_mapper: MyApp.EventTypeMapper,
+          store_id: :my_store,
+          log_level: :info,
+          adapter: ExESDB.Commanded.Adapter,
+          stream_prefix: "my_app_"
+        ]
   """
-
+  
   require Logger
-
+  
   @type config :: Keyword.t()
-  @type adapter_config :: map()
-
-  @doc """
-  Validates and normalizes configuration for ExESDB.Commanded.Adapter.
   
-  ## Options
-  
-  * `:store_id` - ExESDB store identifier (required)
-  * `:stream_prefix` - Prefix for all streams (default: "")
-  * `:serializer` - Serialization module (default: Jason)
-  * `:use_libcluster` - Whether to use libcluster for node discovery (default: true)
-  * `:connection_timeout` - Connection timeout in ms (default: 10_000)
-  * `:retry_attempts` - Number of retry attempts for failed operations (default: 3)
-  * `:retry_backoff` - Backoff interval between retries in ms (default: 1_000)
-  
-  ## Examples
-  
-      iex> ExESDB.Commanded.Config.validate([store_id: :my_store])
-      {:ok, %{store_id: :my_store, stream_prefix: "", ...}}
-      
-      iex> ExESDB.Commanded.Config.validate([])
-      {:error, {:missing_required_config, [:store_id]}}
-  """
-  @spec validate(config()) :: {:ok, adapter_config()} | {:error, {atom(), term()}}
-  def validate(config) when is_list(config) do
-    with {:ok, validated_config} <- validate_required_fields(config),
-         {:ok, normalized_config} <- normalize_config(validated_config) do
-      {:ok, normalized_config}
-    end
-  rescue
-    error -> {:error, {:validation_error, error}}
-  end
-
   @doc """
-  Gets the store ID from configuration or environment.
-  """
-  @spec store_id(config()) :: atom()
-  def store_id(config) do
-    case get_config_value(config, :store_id, "EXESDB_COMMANDED_STORE_ID") do
-      nil -> raise ArgumentError, "store_id is required"
-      value when is_binary(value) -> String.to_atom(value)
-      value when is_atom(value) -> value
-    end
-  end
-
-  @doc """
-  Gets the stream prefix from configuration or environment.
+  Gets event store configuration from the application config.
   
-  Stream prefixes cannot contain dashes to avoid conflicts with ExESDB
-  internal naming conventions.
+  The otp_app and commanded_app are passed from the adapter's child_spec.
   """
-  @spec stream_prefix(config()) :: String.t()
-  def stream_prefix(config) do
-    case get_config_value(config, :stream_prefix, "EXESDB_COMMANDED_STREAM_PREFIX") do
-      nil -> ""
-      value when is_binary(value) -> validate_stream_prefix(value)
-    end
-  end
-
-  @doc """
-  Gets the serializer module from configuration or environment.
-  """
-  @spec serializer(config()) :: module()
-  def serializer(config) do
-    case get_config_value(config, :serializer, "EXESDB_COMMANDED_SERIALIZER") do
-      nil -> Jason
-      value when is_atom(value) -> value
-      value when is_binary(value) -> String.to_existing_atom(value)
-    end
-  end
-
-  @doc """
-  Checks if libcluster should be used for node discovery.
-  """
-  @spec use_libcluster?(config()) :: boolean()
-  def use_libcluster?(config) do
-    case get_config_value(config, :use_libcluster, "EXESDB_COMMANDED_USE_LIBCLUSTER") do
-      nil -> true
-      value when is_boolean(value) -> value
-      "true" -> true
-      "false" -> false
-      other -> raise ArgumentError, "use_libcluster must be a boolean, got: #{inspect(other)}"
+  @spec event_store_config(atom(), atom()) :: Keyword.t()
+  def event_store_config(otp_app, commanded_app) do
+    app_config = Application.get_env(otp_app, commanded_app, [])
+    event_store_config = Keyword.get(app_config, :event_store, [])
+    
+    # Validate configuration exists
+    case {app_config, event_store_config} do
+      {[], []} ->
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        NO CONFIGURATION FOUND FOR ExESDB.Commanded.Adapter!
+        
+        Missing configuration for: #{otp_app} -> #{commanded_app}
+        
+        You MUST add configuration like this to your config files:
+        
+        config :#{otp_app}, #{commanded_app},
+          event_store: [
+            adapter: ExESDB.Commanded.Adapter,
+            event_type_mapper: #{otp_app |> to_string() |> Macro.camelize()}.EventTypeMapper,
+            store_id: :my_store,
+            stream_prefix: "my_prefix_",
+            log_level: :info
+          ]
+        ==================================================================
+        """)
+        []
+        
+      {_app_config, []} ->
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        NO EVENT_STORE CONFIGURATION FOUND!
+        
+        Found app config for #{otp_app} -> #{commanded_app} but missing :event_store key
+        
+        Add event_store configuration:
+        
+        config :#{otp_app}, #{commanded_app},
+          event_store: [
+            adapter: ExESDB.Commanded.Adapter,
+            event_type_mapper: #{otp_app |> to_string() |> Macro.camelize()}.EventTypeMapper,
+            store_id: :my_store
+          ]
+        ==================================================================
+        """)
+        []
+        
+      {_app_config, config} when is_list(config) ->
+        Logger.info("Found event_store configuration for #{otp_app} -> #{commanded_app}")
+        validate_event_store_config(config, otp_app, commanded_app)
+        
+      {_app_config, invalid} ->
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        INVALID EVENT_STORE CONFIGURATION!
+        
+        Expected a keyword list but got: #{inspect(invalid)}
+        
+        Configuration must be a keyword list like:
+        
+        config :#{otp_app}, #{commanded_app},
+          event_store: [
+            adapter: ExESDB.Commanded.Adapter,
+            event_type_mapper: MyApp.EventTypeMapper
+          ]
+        ==================================================================
+        """)
+        []
     end
   end
-
+  
   @doc """
-  Gets the connection timeout from configuration or environment.
+  Validates the event store configuration and warns about missing critical components.
   """
-  @spec connection_timeout(config()) :: pos_integer()
-  def connection_timeout(config) do
-    case get_config_value(config, :connection_timeout, "EXESDB_COMMANDED_CONNECTION_TIMEOUT") do
-      nil -> 10_000
-      value when is_integer(value) and value > 0 -> value
-      value when is_binary(value) ->
-        case Integer.parse(value) do
-          {int_val, ""} when int_val > 0 -> int_val
-          _ -> raise ArgumentError, "connection_timeout must be a positive integer"
+  @spec validate_event_store_config(Keyword.t(), atom(), atom()) :: Keyword.t()
+  def validate_event_store_config(config, otp_app, commanded_app) do
+    # Check for adapter
+    case Keyword.get(config, :adapter) do
+      ExESDB.Commanded.Adapter ->
+        Logger.debug("Correct adapter configured: ExESDB.Commanded.Adapter")
+        
+      nil ->
+        Logger.warning("""
+        ========================== WARNING ==========================
+        NO ADAPTER SPECIFIED IN EVENT_STORE CONFIG!
+        
+        Add adapter to your configuration:
+        adapter: ExESDB.Commanded.Adapter
+        ==========================================================
+        """)
+        
+      other ->
+        Logger.warning("""
+        ========================== WARNING ==========================
+        DIFFERENT ADAPTER CONFIGURED: #{inspect(other)}
+        
+        This configuration is for ExESDB.Commanded.Adapter
+        If you're using a different adapter, this config may not apply.
+        ==========================================================
+        """)
+    end
+    
+    # Check for event_type_mapper
+    case Keyword.get(config, :event_type_mapper) do
+      nil ->
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        NO EVENT_TYPE_MAPPER CONFIGURED!
+        
+        This is REQUIRED for proper event handling!
+        
+        Add to your configuration:
+        event_type_mapper: #{otp_app |> to_string() |> Macro.camelize()}.EventTypeMapper
+        
+        And create the mapper module:
+        
+        defmodule #{otp_app |> to_string() |> Macro.camelize()}.EventTypeMapper do
+          def to_event_type(module_name) when is_atom(module_name) do
+            module_name |> to_string() |> String.replace("Elixir.", "")
+          end
         end
+        ==================================================================
+        """)
+        
+      mapper when is_atom(mapper) ->
+        validate_event_type_mapper(mapper)
+        
+      invalid ->
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        INVALID EVENT_TYPE_MAPPER: #{inspect(invalid)}
+        
+        event_type_mapper must be a module atom, got: #{inspect(invalid)}
+        ==================================================================
+        """)
     end
-  end
-
-  @doc """
-  Gets the retry attempts from configuration or environment.
-  """
-  @spec retry_attempts(config()) :: non_neg_integer()
-  def retry_attempts(config) do
-    case get_config_value(config, :retry_attempts, "EXESDB_COMMANDED_RETRY_ATTEMPTS") do
-      nil -> 3
-      value when is_integer(value) and value >= 0 -> value
-      value when is_binary(value) ->
-        case Integer.parse(value) do
-          {int_val, ""} when int_val >= 0 -> int_val
-          _ -> raise ArgumentError, "retry_attempts must be a non-negative integer"
-        end
+    
+    # Check for store_id
+    case Keyword.get(config, :store_id) do
+      nil ->
+        Logger.warning("""
+        ========================== WARNING ==========================
+        NO STORE_ID CONFIGURED - using default :ex_esdb
+        
+        Consider adding: store_id: :my_store_name
+        ==========================================================
+        """)
+        
+      store_id when is_atom(store_id) ->
+        Logger.info("Store ID configured: #{store_id}")
+        
+      invalid ->
+        Logger.error("""
+        ========================== ERROR ==========================
+        INVALID STORE_ID: #{inspect(invalid)}
+        
+        store_id must be an atom, got: #{inspect(invalid)}
+        ========================================================
+        """)
     end
+    
+    config
   end
-
+  
   @doc """
-  Gets the retry backoff from configuration or environment.
+  Validates that the event type mapper module exists and has required functions.
   """
-  @spec retry_backoff(config()) :: pos_integer()
-  def retry_backoff(config) do
-    case get_config_value(config, :retry_backoff, "EXESDB_COMMANDED_RETRY_BACKOFF") do
-      nil -> 1_000
-      value when is_integer(value) and value > 0 -> value
-      value when is_binary(value) ->
-        case Integer.parse(value) do
-          {int_val, ""} when int_val > 0 -> int_val
-          _ -> raise ArgumentError, "retry_backoff must be a positive integer"
-        end
-    end
-  end
-
-  @doc """
-  Validates that the serializer module is available and has required functions.
-  """
-  @spec validate_serializer(module()) :: {:ok, module()} | {:error, term()}
-  def validate_serializer(serializer) when is_atom(serializer) do
+  @spec validate_event_type_mapper(module()) :: :ok
+  def validate_event_type_mapper(mapper) when is_atom(mapper) do
     try do
-      Code.ensure_loaded!(serializer)
+      Code.ensure_loaded!(mapper)
       
-      # Check if module has required functions
-      if function_exported?(serializer, :encode!, 1) and 
-         function_exported?(serializer, :decode!, 1) do
-        {:ok, serializer}
+      if function_exported?(mapper, :to_event_type, 1) do
+        Logger.info("Event type mapper validated: #{inspect(mapper)}")
+        :ok
       else
-        {:error, {:invalid_serializer, "serializer must export encode!/1 and decode!/1"}}
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        EVENT_TYPE_MAPPER MISSING REQUIRED FUNCTION!
+        
+        Module #{inspect(mapper)} exists but doesn't export to_event_type/1
+        
+        Add this function to your mapper:
+        
+        def to_event_type(module_name) when is_atom(module_name) do
+          module_name |> to_string() |> String.replace("Elixir.", "")
+        end
+        ==================================================================
+        """)
+        :error
       end
     rescue
-      _ -> {:error, {:invalid_serializer, "serializer module not available: #{serializer}"}}
+      error ->
+        Logger.error("""
+        ========================== CRITICAL ERROR ==========================
+        EVENT_TYPE_MAPPER MODULE NOT FOUND!
+        
+        Module #{inspect(mapper)} could not be loaded: #{inspect(error)}
+        
+        Create the module or fix the module name in your configuration.
+        ==================================================================
+        """)
+        :error
     end
   end
-
+  
   @doc """
-  Validates libcluster topology configuration.
+  Gets a specific configuration value with a default.
   """
-  @spec validate_libcluster_config(config()) :: {:ok, config()} | {:error, term()}
-  def validate_libcluster_config(config) do
-    if use_libcluster?(config) do
-      case Application.get_env(:libcluster, :topologies) do
-        nil -> 
-          Logger.warning("libcluster is enabled but no topologies configured")
-          {:ok, config}
-        topologies when is_list(topologies) ->
-          Logger.info("libcluster enabled with #{length(topologies)} topologies")
-          {:ok, config}
-        invalid ->
-          {:error, {:invalid_libcluster_config, invalid}}
-      end
-    else
-      {:ok, config}
-    end
+  @spec get_config(atom(), atom(), atom(), any()) :: any()
+  def get_config(otp_app, commanded_app, key, default \\ nil) do
+    event_store_config(otp_app, commanded_app)
+    |> Keyword.get(key, default)
   end
-
-  # Private functions
-
-  defp validate_required_fields(config) do
-    required = [:store_id]
-    missing = Enum.filter(required, fn key ->
-      case get_config_value(config, key, nil) do
-        nil -> true
-        "" -> true
-        _ -> false
-      end
-    end)
-
-    case missing do
-      [] -> {:ok, config}
-      missing_keys -> {:error, {:missing_required_config, missing_keys}}
-    end
+  
+  @doc """
+  Gets the store ID from configuration.
+  """
+  @spec store_id(atom(), atom()) :: atom()
+  def store_id(otp_app, commanded_app) do
+    get_config(otp_app, commanded_app, :store_id, :ex_esdb)
   end
-
-  defp normalize_config(config) do
-    serializer_module = serializer(config)
-    
-    with {:ok, validated_serializer} <- validate_serializer(serializer_module),
-         {:ok, _} <- validate_libcluster_config(config) do
-      
-      normalized = %{
-        store_id: store_id(config),
-        stream_prefix: stream_prefix(config),
-        serializer: validated_serializer,
-        use_libcluster: use_libcluster?(config),
-        connection_timeout: connection_timeout(config),
-        retry_attempts: retry_attempts(config),
-        retry_backoff: retry_backoff(config)
-      }
-      
-      {:ok, normalized}
-    end
+  
+  @doc """
+  Gets the stream prefix from configuration.
+  """
+  @spec stream_prefix(atom(), atom()) :: String.t()
+  def stream_prefix(otp_app, commanded_app) do
+    get_config(otp_app, commanded_app, :stream_prefix, "")
   end
-
-  defp get_config_value(config, key, env_var) do
-    case Keyword.get(config, key) do
-      nil when is_binary(env_var) -> System.get_env(env_var)
-      nil -> nil
-      value -> value
-    end
+  
+  @doc """
+  Gets the serializer module from configuration.
+  """
+  @spec serializer(atom(), atom()) :: module()
+  def serializer(otp_app, commanded_app) do
+    get_config(otp_app, commanded_app, :serializer, Jason)
   end
-
-  defp validate_stream_prefix(prefix) when is_binary(prefix) do
-    case String.contains?(prefix, "-") do
-      true -> raise ArgumentError, "stream_prefix cannot contain a dash (\"-\")"
-      false -> prefix
-    end
+  
+  @doc """
+  Gets the event type mapper from configuration.
+  """
+  @spec event_type_mapper(atom(), atom()) :: module() | nil
+  def event_type_mapper(otp_app, commanded_app) do
+    get_config(otp_app, commanded_app, :event_type_mapper)
+  end
+  
+  @doc """
+  Gets the log level from configuration.
+  """
+  @spec log_level(atom(), atom()) :: atom()
+  def log_level(otp_app, commanded_app) do
+    get_config(otp_app, commanded_app, :log_level, :info)
   end
 end

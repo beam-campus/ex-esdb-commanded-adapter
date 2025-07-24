@@ -4,7 +4,7 @@ defmodule ExESDB.Commanded.MixProject do
 
   @app_name :ex_esdb_commanded
   @elixir_version "~> 1.17"
-  @version "0.2.0"
+  @version "0.3.6"
   @source_url "https://github.com/beam-campus/ex-esdb-commanded-adapter"
   #  @homepage_url "https://github.com/beam-campus/ex-esdb"
   @docs_url "https://hexdocs.pm/ex_esdb_commanded"
@@ -95,7 +95,8 @@ defmodule ExESDB.Commanded.MixProject do
       {:uuidv7, "~> 1.0"},
       {:elixir_uuid, "~> 1.2"},
       {:commanded, "~> 1.4.8"},
-      {:ex_esdb_gater, "~> 0.1.19"}
+      {:ex_esdb_gater, "~> 0.1.19"},
+      {:ex_esdb, "~> 0.4.1", only: [:test, :dev]}
     ]
   end
 
@@ -120,6 +121,10 @@ defmodule ExESDB.Commanded.MixProject do
         "guides/event-sourcing-with-cqrs.md": [
           filename: "event-sourcing-with-cqrs",
           title: "Event Sourcing with CQRS"
+        ],
+        "guides/test-suite.md": [
+          filename: "test-suite",
+          title: "Test Suite"
         ],
         "../README.md": [
           filename: "readme",
