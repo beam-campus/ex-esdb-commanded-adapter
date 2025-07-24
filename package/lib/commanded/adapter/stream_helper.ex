@@ -8,7 +8,7 @@ defmodule ExESDB.Commanded.Adapter.StreamHelper do
   Allows:
   - $all streams (global) - aggregates should subscribe to this and filter by stream_id
   - Event type streams ($et-*) - for projection systems
-  
+
   Blocks:
   - Individual stream subscriptions to prevent creating separate emitters per aggregate
   """
@@ -52,7 +52,9 @@ defmodule ExESDB.Commanded.Adapter.StreamHelper do
   def normalize_expected_version(:no_stream), do: -1
   def normalize_expected_version(:any_version), do: :any
   def normalize_expected_version(:stream_exists), do: :stream_exists
-  def normalize_expected_version(version) when is_integer(version) and version >= 0, do: version - 1
+
+  def normalize_expected_version(version) when is_integer(version) and version >= 0,
+    do: version - 1
 
   @doc """
   Maps ExESDB error responses to Commanded error format.
@@ -62,7 +64,10 @@ defmodule ExESDB.Commanded.Adapter.StreamHelper do
     Logger.error("ADAPTER: Wrong expected version, actual version is: #{actual_version}")
     {:error, :wrong_expected_version}
   end
-  def map_error({:error, {:wrong_expected_version, actual_version}}), do: map_error({:wrong_expected_version, actual_version})
+
+  def map_error({:error, {:wrong_expected_version, actual_version}}),
+    do: map_error({:wrong_expected_version, actual_version})
+
   def map_error(:stream_not_found), do: {:error, :stream_not_found}
   def map_error(error), do: {:error, error}
 
@@ -75,4 +80,23 @@ defmodule ExESDB.Commanded.Adapter.StreamHelper do
   Extracts stream prefix from adapter metadata.
   """
   def stream_prefix(meta), do: Map.get(meta, :stream_prefix, "")
+
+  def pubsub(meta) do
+    IO.puts(" >>>>>>>>>>>>>>>>>>META: #{inspect(meta)} <<<<<<<<<<<<<<<<<<<<<<<<<<<")
+
+    meta
+    |> Map.get(:pubsub, %{})
+  end
+
+  def phoenix_pubsub(meta),
+    do:
+      meta
+      |> pubsub()
+      |> Map.get(:phoenix_pubsub, %{})
+
+  def pubsub_name(meta, default),
+    do:
+      meta
+      |> phoenix_pubsub()
+      |> Map.get(:name, default)
 end

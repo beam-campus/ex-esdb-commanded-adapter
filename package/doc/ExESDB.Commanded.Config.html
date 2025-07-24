@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.1.0">
+    <meta name="project" content="ex_esdb_commanded v0.3.6">
 
 
-    <title>ExESDB.Commanded.Config — ex_esdb_commanded v0.1.0</title>
+    <title>ExESDB.Commanded.Config — ex_esdb_commanded v0.3.6</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.Config.html" />
 
-    <script defer src="dist/sidebar_items-E85856A7.js"></script>
+    <script defer src="dist/sidebar_items-03729033.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.1.0
+          v0.3.6
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.Config</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.1.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.3.6)</small>
 
     </h1>
 
@@ -86,9 +86,14 @@ ex_esdb_commanded
 
 
     <section id="moduledoc">
-<p>Configuration validation and normalization for ExESDB.Commanded.Adapter.</p><p>This module provides standardized configuration handling with proper validation,
-error handling, and normalization to ensure consistent behavior between Commanded
-and ExESDB systems.</p>
+<p>Simple configuration for ExESDB.Commanded.Adapter.</p><p>Expects configuration in the standard Commanded format:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:my_otp_app</span><span class="p">,</span><span class="w"> </span><span class="nc">MyApp.CommandedApp</span><span class="p">,</span><span class="w">
+  </span><span class="ss">event_store</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="8915689271-1">[</span><span class="w">
+    </span><span class="ss">event_type_mapper</span><span class="p">:</span><span class="w"> </span><span class="nc">MyApp.EventTypeMapper</span><span class="p">,</span><span class="w">
+    </span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p">,</span><span class="w">
+    </span><span class="ss">log_level</span><span class="p">:</span><span class="w"> </span><span class="ss">:info</span><span class="p">,</span><span class="w">
+    </span><span class="ss">adapter</span><span class="p">:</span><span class="w"> </span><span class="nc">ExESDB.Commanded.Adapter</span><span class="p">,</span><span class="w">
+    </span><span class="ss">stream_prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my_app_&quot;</span><span class="w">
+  </span><span class="p" data-group-id="8915689271-1">]</span></code></pre>
     </section>
 
 </div>
@@ -107,14 +112,6 @@ and ExESDB systems.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#t:adapter_config/0" data-no-tooltip="" translate="no">adapter_config()</a>
-
-      </div>
-
-    </div>
-
-    <div class="summary-row">
-      <div class="summary-signature">
         <a href="#t:config/0" data-no-tooltip="" translate="no">config()</a>
 
       </div>
@@ -129,101 +126,91 @@ and ExESDB systems.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#connection_timeout/1" data-no-tooltip="" translate="no">connection_timeout(config)</a>
+        <a href="#event_store_config/2" data-no-tooltip="" translate="no">event_store_config(otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Gets the connection timeout from configuration or environment.</p></div>
+        <div class="summary-synopsis"><p>Gets event store configuration from the application config.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#retry_attempts/1" data-no-tooltip="" translate="no">retry_attempts(config)</a>
+        <a href="#event_type_mapper/2" data-no-tooltip="" translate="no">event_type_mapper(otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Gets the retry attempts from configuration or environment.</p></div>
+        <div class="summary-synopsis"><p>Gets the event type mapper from configuration.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#retry_backoff/1" data-no-tooltip="" translate="no">retry_backoff(config)</a>
+        <a href="#get_config/4" data-no-tooltip="" translate="no">get_config(otp_app, commanded_app, key, default \\ nil)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Gets the retry backoff from configuration or environment.</p></div>
+        <div class="summary-synopsis"><p>Gets a specific configuration value with a default.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#serializer/1" data-no-tooltip="" translate="no">serializer(config)</a>
+        <a href="#log_level/2" data-no-tooltip="" translate="no">log_level(otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Gets the serializer module from configuration or environment.</p></div>
+        <div class="summary-synopsis"><p>Gets the log level from configuration.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#store_id/1" data-no-tooltip="" translate="no">store_id(config)</a>
+        <a href="#serializer/2" data-no-tooltip="" translate="no">serializer(otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Gets the store ID from configuration or environment.</p></div>
+        <div class="summary-synopsis"><p>Gets the serializer module from configuration.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#stream_prefix/1" data-no-tooltip="" translate="no">stream_prefix(config)</a>
+        <a href="#store_id/2" data-no-tooltip="" translate="no">store_id(otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Gets the stream prefix from configuration or environment.</p></div>
+        <div class="summary-synopsis"><p>Gets the store ID from configuration.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#use_libcluster?/1" data-no-tooltip="" translate="no">use_libcluster?(config)</a>
+        <a href="#stream_prefix/2" data-no-tooltip="" translate="no">stream_prefix(otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Checks if libcluster should be used for node discovery.</p></div>
+        <div class="summary-synopsis"><p>Gets the stream prefix from configuration.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#validate/1" data-no-tooltip="" translate="no">validate(config)</a>
+        <a href="#validate_event_store_config/3" data-no-tooltip="" translate="no">validate_event_store_config(config, otp_app, commanded_app)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Validates and normalizes configuration for ExESDB.Commanded.Adapter.</p></div>
+        <div class="summary-synopsis"><p>Validates the event store configuration and warns about missing critical components.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#validate_libcluster_config/1" data-no-tooltip="" translate="no">validate_libcluster_config(config)</a>
+        <a href="#validate_event_type_mapper/1" data-no-tooltip="" translate="no">validate_event_type_mapper(mapper)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>Validates libcluster topology configuration.</p></div>
-
-    </div>
-
-    <div class="summary-row">
-      <div class="summary-signature">
-        <a href="#validate_serializer/1" data-no-tooltip="" translate="no">validate_serializer(serializer)</a>
-
-      </div>
-
-        <div class="summary-synopsis"><p>Validates that the serializer module is available and has required functions.</p></div>
+        <div class="summary-synopsis"><p>Validates that the event type mapper module exists and has required functions.</p></div>
 
     </div>
 
@@ -240,30 +227,6 @@ and ExESDB systems.</p>
       <span class="text">Types</span>
     </h1>
     <div class="types-list">
-<section class="detail" id="t:adapter_config/0">
-
-  <div class="detail-header">
-    <a href="#t:adapter_config/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
-      <i class="ri-link-m" aria-hidden="true"></i>
-    </a>
-    <div class="heading-with-actions">
-      <h1 class="signature" translate="no">adapter_config()</h1>
-
-
-    </div>
-  </div>
-
-  <section class="docstring">
-
-      <div class="specs">
-
-          <pre translate="no"><span class="attribute">@type</span> adapter_config() :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">map</a>()</pre>
-
-      </div>
-
-
-  </section>
-</section>
 <section class="detail" id="t:config/0">
 
   <div class="detail-header">
@@ -300,14 +263,14 @@ and ExESDB systems.</p>
       <span class="text">Functions</span>
     </h1>
     <div class="functions-list">
-<section class="detail" id="connection_timeout/1">
+<section class="detail" id="event_store_config/2">
 
   <div class="detail-header">
-    <a href="#connection_timeout/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#event_store_config/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">connection_timeout(config)</h1>
+      <h1 class="signature" translate="no">event_store_config(otp_app, commanded_app)</h1>
 
 
     </div>
@@ -317,21 +280,21 @@ and ExESDB systems.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> connection_timeout(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">pos_integer</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> event_store_config(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/Keyword.html#t:t/0">Keyword.t</a>()</pre>
 
       </div>
 
-<p>Gets the connection timeout from configuration or environment.</p>
+<p>Gets event store configuration from the application config.</p><p>The otp_app and commanded_app are passed from the adapter's child_spec.</p>
   </section>
 </section>
-<section class="detail" id="retry_attempts/1">
+<section class="detail" id="event_type_mapper/2">
 
   <div class="detail-header">
-    <a href="#retry_attempts/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#event_type_mapper/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">retry_attempts(config)</h1>
+      <h1 class="signature" translate="no">event_type_mapper(otp_app, commanded_app)</h1>
 
 
     </div>
@@ -341,21 +304,23 @@ and ExESDB systems.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> retry_attempts(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">non_neg_integer</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> event_type_mapper(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">module</a>() | nil</pre>
 
       </div>
 
-<p>Gets the retry attempts from configuration or environment.</p>
+<p>Gets the event type mapper from configuration.</p>
   </section>
 </section>
-<section class="detail" id="retry_backoff/1">
+<section class="detail" id="get_config/4">
+
+    <span id="get_config/3"></span>
 
   <div class="detail-header">
-    <a href="#retry_backoff/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#get_config/4" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">retry_backoff(config)</h1>
+      <h1 class="signature" translate="no">get_config(otp_app, commanded_app, key, default \\ nil)</h1>
 
 
     </div>
@@ -365,21 +330,21 @@ and ExESDB systems.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> retry_backoff(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">pos_integer</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> get_config(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">any</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">any</a>()</pre>
 
       </div>
 
-<p>Gets the retry backoff from configuration or environment.</p>
+<p>Gets a specific configuration value with a default.</p>
   </section>
 </section>
-<section class="detail" id="serializer/1">
+<section class="detail" id="log_level/2">
 
   <div class="detail-header">
-    <a href="#serializer/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#log_level/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">serializer(config)</h1>
+      <h1 class="signature" translate="no">log_level(otp_app, commanded_app)</h1>
 
 
     </div>
@@ -389,21 +354,21 @@ and ExESDB systems.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> serializer(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">module</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> log_level(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()</pre>
 
       </div>
 
-<p>Gets the serializer module from configuration or environment.</p>
+<p>Gets the log level from configuration.</p>
   </section>
 </section>
-<section class="detail" id="store_id/1">
+<section class="detail" id="serializer/2">
 
   <div class="detail-header">
-    <a href="#store_id/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#serializer/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">store_id(config)</h1>
+      <h1 class="signature" translate="no">serializer(otp_app, commanded_app)</h1>
 
 
     </div>
@@ -413,21 +378,21 @@ and ExESDB systems.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> store_id(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> serializer(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">module</a>()</pre>
 
       </div>
 
-<p>Gets the store ID from configuration or environment.</p>
+<p>Gets the serializer module from configuration.</p>
   </section>
 </section>
-<section class="detail" id="stream_prefix/1">
+<section class="detail" id="store_id/2">
 
   <div class="detail-header">
-    <a href="#stream_prefix/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#store_id/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">stream_prefix(config)</h1>
+      <h1 class="signature" translate="no">store_id(otp_app, commanded_app)</h1>
 
 
     </div>
@@ -437,22 +402,21 @@ and ExESDB systems.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> stream_prefix(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> store_id(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()</pre>
 
       </div>
 
-<p>Gets the stream prefix from configuration or environment.</p><p>Stream prefixes cannot contain dashes to avoid conflicts with ExESDB
-internal naming conventions.</p>
+<p>Gets the store ID from configuration.</p>
   </section>
 </section>
-<section class="detail" id="use_libcluster?/1">
+<section class="detail" id="stream_prefix/2">
 
   <div class="detail-header">
-    <a href="#use_libcluster?/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#stream_prefix/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">use_libcluster?(config)</h1>
+      <h1 class="signature" translate="no">stream_prefix(otp_app, commanded_app)</h1>
 
 
     </div>
@@ -462,21 +426,21 @@ internal naming conventions.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> use_libcluster?(<a href="#t:config/0">config</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">boolean</a>()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> stream_prefix(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>()</pre>
 
       </div>
 
-<p>Checks if libcluster should be used for node discovery.</p>
+<p>Gets the stream prefix from configuration.</p>
   </section>
 </section>
-<section class="detail" id="validate/1">
+<section class="detail" id="validate_event_store_config/3">
 
   <div class="detail-header">
-    <a href="#validate/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#validate_event_store_config/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">validate(config)</h1>
+      <h1 class="signature" translate="no">validate_event_store_config(config, otp_app, commanded_app)</h1>
 
 
     </div>
@@ -486,25 +450,21 @@ internal naming conventions.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> validate(<a href="#t:config/0">config</a>()) :: {:ok, <a href="#t:adapter_config/0">adapter_config</a>()} | {:error, {<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">term</a>()}}</pre>
+          <pre translate="no"><span class="attribute">@spec</span> validate_event_store_config(<a href="https://hexdocs.pm/elixir/Keyword.html#t:t/0">Keyword.t</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: <a href="https://hexdocs.pm/elixir/Keyword.html#t:t/0">Keyword.t</a>()</pre>
 
       </div>
 
-<p>Validates and normalizes configuration for ExESDB.Commanded.Adapter.</p><h2 id="validate/1-options" class="section-heading"><a href="#validate/1-options" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Options</span></h2><ul><li><code class="inline">:store_id</code> - ExESDB store identifier (required)</li><li><code class="inline">:stream_prefix</code> - Prefix for all streams (default: &quot;&quot;)</li><li><code class="inline">:serializer</code> - Serialization module (default: Jason)</li><li><code class="inline">:use_libcluster</code> - Whether to use libcluster for node discovery (default: true)</li><li><code class="inline">:connection_timeout</code> - Connection timeout in ms (default: 10_000)</li><li><code class="inline">:retry_attempts</code> - Number of retry attempts for failed operations (default: 3)</li><li><code class="inline">:retry_backoff</code> - Backoff interval between retries in ms (default: 1_000)</li></ul><h2 id="validate/1-examples" class="section-heading"><a href="#validate/1-examples" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Examples</span></h2><pre><code class="makeup elixir" translate="no"><span class="gp unselectable">iex&gt; </span><span class="nc">ExESDB.Commanded.Config</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="6013149950-1">(</span><span class="p" data-group-id="6013149950-2">[</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p" data-group-id="6013149950-2">]</span><span class="p" data-group-id="6013149950-1">)</span><span class="w">
-</span><span class="p" data-group-id="6013149950-3">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6013149950-4">%{</span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store</span><span class="p">,</span><span class="w"> </span><span class="ss">stream_prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">...</span><span class="p" data-group-id="6013149950-4">}</span><span class="p" data-group-id="6013149950-3">}</span><span class="w">
-
-</span><span class="gp unselectable">iex&gt; </span><span class="nc">ExESDB.Commanded.Config</span><span class="o">.</span><span class="n">validate</span><span class="p" data-group-id="6013149950-5">(</span><span class="p" data-group-id="6013149950-6">[</span><span class="p" data-group-id="6013149950-6">]</span><span class="p" data-group-id="6013149950-5">)</span><span class="w">
-</span><span class="p" data-group-id="6013149950-7">{</span><span class="ss">:error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6013149950-8">{</span><span class="ss">:missing_required_config</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6013149950-9">[</span><span class="ss">:store_id</span><span class="p" data-group-id="6013149950-9">]</span><span class="p" data-group-id="6013149950-8">}</span><span class="p" data-group-id="6013149950-7">}</span></code></pre>
+<p>Validates the event store configuration and warns about missing critical components.</p>
   </section>
 </section>
-<section class="detail" id="validate_libcluster_config/1">
+<section class="detail" id="validate_event_type_mapper/1">
 
   <div class="detail-header">
-    <a href="#validate_libcluster_config/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#validate_event_type_mapper/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">validate_libcluster_config(config)</h1>
+      <h1 class="signature" translate="no">validate_event_type_mapper(mapper)</h1>
 
 
     </div>
@@ -514,35 +474,11 @@ internal naming conventions.</p>
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> validate_libcluster_config(<a href="#t:config/0">config</a>()) :: {:ok, <a href="#t:config/0">config</a>()} | {:error, <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">term</a>()}</pre>
+          <pre translate="no"><span class="attribute">@spec</span> validate_event_type_mapper(<a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">module</a>()) :: :ok</pre>
 
       </div>
 
-<p>Validates libcluster topology configuration.</p>
-  </section>
-</section>
-<section class="detail" id="validate_serializer/1">
-
-  <div class="detail-header">
-    <a href="#validate_serializer/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
-      <i class="ri-link-m" aria-hidden="true"></i>
-    </a>
-    <div class="heading-with-actions">
-      <h1 class="signature" translate="no">validate_serializer(serializer)</h1>
-
-
-    </div>
-  </div>
-
-  <section class="docstring">
-
-      <div class="specs">
-
-          <pre translate="no"><span class="attribute">@spec</span> validate_serializer(<a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">module</a>()) :: {:ok, <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">module</a>()} | {:error, <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">term</a>()}</pre>
-
-      </div>
-
-<p>Validates that the serializer module is available and has required functions.</p>
+<p>Validates that the event type mapper module exists and has required functions.</p>
   </section>
 </section>
 
@@ -553,9 +489,9 @@ internal naming conventions.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
 
           </span>
 

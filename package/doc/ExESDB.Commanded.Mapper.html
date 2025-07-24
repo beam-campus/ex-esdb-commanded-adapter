@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.1.0">
+    <meta name="project" content="ex_esdb_commanded v0.3.6">
 
 
-    <title>ExESDB.Commanded.Mapper — ex_esdb_commanded v0.1.0</title>
+    <title>ExESDB.Commanded.Mapper — ex_esdb_commanded v0.3.6</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.Mapper.html" />
 
-    <script defer src="dist/sidebar_items-E85856A7.js"></script>
+    <script defer src="dist/sidebar_items-03729033.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.1.0
+          v0.3.6
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.Mapper</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.1.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.3.6)</small>
 
     </h1>
 
@@ -105,7 +105,7 @@ ex_esdb_commanded
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#to_new_event/1" data-no-tooltip="" translate="no">to_new_event(event_data)</a>
+        <a href="#to_new_event/2" data-no-tooltip="" translate="no">to_new_event(event_data, event_type_mapper)</a>
 
       </div>
 
@@ -119,7 +119,7 @@ ex_esdb_commanded
 
       </div>
 
-        <div class="summary-synopsis"><p>  Converts an ExESDB.Schema.EventRecord struct to a Commanded RecordedEvent struct.</p></div>
+        <div class="summary-synopsis"><p>Converts an ExESDB.Schema.EventRecord struct to a Commanded RecordedEvent struct.</p></div>
 
     </div>
 
@@ -156,14 +156,14 @@ ex_esdb_commanded
       <span class="text">Functions</span>
     </h1>
     <div class="functions-list">
-<section class="detail" id="to_new_event/1">
+<section class="detail" id="to_new_event/2">
 
   <div class="detail-header">
-    <a href="#to_new_event/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#to_new_event/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">to_new_event(event_data)</h1>
+      <h1 class="signature" translate="no">to_new_event(event_data, event_type_mapper)</h1>
 
 
     </div>
@@ -173,7 +173,11 @@ ex_esdb_commanded
 
       <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> to_new_event(<a href="https://hexdocs.pm/commanded/1.4.8/Commanded.EventStore.EventData.html#t:t/0">Commanded.EventStore.EventData.t</a>()) :: ExESDB.Schema.NewEvent.t()</pre>
+          <pre translate="no"><span class="attribute">@spec</span> to_new_event(
+  <a href="https://hexdocs.pm/commanded/1.4.8/Commanded.EventStore.EventData.html#t:t/0">Commanded.EventStore.EventData.t</a>(),
+  <a href="ExESDB.Commanded.EventTypeMapper.html#t:t/0">ExESDB.Commanded.EventTypeMapper.t</a>()
+) ::
+  ExESDB.Schema.NewEvent.t()</pre>
 
       </div>
 
@@ -202,7 +206,7 @@ ex_esdb_commanded
 
       </div>
 
-<p>  Converts an ExESDB.Schema.EventRecord struct to a Commanded RecordedEvent struct.</p>
+<p>Converts an ExESDB.Schema.EventRecord struct to a Commanded RecordedEvent struct.</p>
   </section>
 </section>
 <section class="detail" id="to_snapshot_data/1">
@@ -241,7 +245,7 @@ ex_esdb_commanded
       <div class="specs">
 
           <pre translate="no"><span class="attribute">@spec</span> to_snapshot_record(<a href="https://hexdocs.pm/commanded/1.4.8/Commanded.EventStore.SnapshotData.html#t:t/0">Commanded.EventStore.SnapshotData.t</a>()) ::
-  <a href="https://hexdocs.pm/ex_esdb_gater/0.1.0/ExESDB.Schema.SnapshotRecord.html#t:t/0">ExESDB.Schema.SnapshotRecord.t</a>()</pre>
+  <a href="https://hexdocs.pm/ex_esdb_gater/0.1.19/ExESDB.Schema.SnapshotRecord.html#t:t/0">ExESDB.Schema.SnapshotRecord.t</a>()</pre>
 
       </div>
 
@@ -256,9 +260,9 @@ ex_esdb_commanded
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
 
           </span>
 

@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.1.0">
+    <meta name="project" content="ex_esdb_commanded v0.3.6">
 
 
-    <title>ExESDB.Commanded.Adapter.SubscriptionProxy — ex_esdb_commanded v0.1.0</title>
+    <title>ExESDB.Commanded.Adapter.SubscriptionProxy — ex_esdb_commanded v0.3.6</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.Adapter.SubscriptionProxy.html" />
 
-    <script defer src="dist/sidebar_items-E85856A7.js"></script>
+    <script defer src="dist/sidebar_items-03729033.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.1.0
+          v0.3.6
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.Adapter.SubscriptionProxy</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.1.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.3.6)</small>
 
     </h1>
 
@@ -87,7 +87,9 @@ ex_esdb_commanded
 
     <section id="moduledoc">
 <p>Supervised GenServer that handles subscription proxies for converting ExESDB events to Commanded format.</p><p>This process is supervised and maintains its registration with the ExESDB store,
-ensuring event delivery continues even after process restarts.</p>
+ensuring event delivery continues even after process restarts.</p><p>There is an aggressive re-registration process that runs periodically 
+to ensure the subscription PID is current. This is mainly to deal with 
+new leader election scenarios where the emitter processes are restarted.</p><p>We should think of a mechanism to handle this better in the future.</p>
     </section>
 
 </div>
@@ -209,9 +211,9 @@ ensuring event delivery continues even after process restarts.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
 
           </span>
 

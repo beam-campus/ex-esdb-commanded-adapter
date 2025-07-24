@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.1.0">
+    <meta name="project" content="ex_esdb_commanded v0.3.6">
 
 
-    <title>ExESDB.Commanded.Adapter.SubscriptionProxySupervisor — ex_esdb_commanded v0.1.0</title>
+    <title>ExESDB.Commanded.Adapter.SubscriptionProxySupervisor — ex_esdb_commanded v0.3.6</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.Adapter.SubscriptionProxySupervisor.html" />
 
-    <script defer src="dist/sidebar_items-E85856A7.js"></script>
+    <script defer src="dist/sidebar_items-03729033.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.1.0
+          v0.3.6
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.Adapter.SubscriptionProxySupervisor</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.1.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.3.6)</small>
 
     </h1>
 
@@ -87,7 +87,8 @@ ex_esdb_commanded
 
     <section id="moduledoc">
 <p>Supervisor for SubscriptionProxy processes.</p><p>This supervisor ensures that SubscriptionProxy processes are restarted
-when they crash, and their PIDs are updated in the ExESDB store.</p>
+when they crash, and their PIDs are updated in the ExESDB store.</p><p>Each supervisor instance is associated with a specific store_id to support
+multiple stores in umbrella applications.</p>
     </section>
 
 </div>
@@ -116,17 +117,17 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#list_proxies/0" data-no-tooltip="" translate="no">list_proxies()</a>
+        <a href="#list_proxies/1" data-no-tooltip="" translate="no">list_proxies(store_id)</a>
 
       </div>
 
-        <div class="summary-synopsis"><p>List all running proxy processes.</p></div>
+        <div class="summary-synopsis"><p>List all running proxy processes for a specific store.</p></div>
 
     </div>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#start_link/1" data-no-tooltip="" translate="no">start_link(init_arg)</a>
+        <a href="#start_link/1" data-no-tooltip="" translate="no">start_link(opts)</a>
 
       </div>
 
@@ -144,7 +145,7 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#stop_proxy/1" data-no-tooltip="" translate="no">stop_proxy(pid)</a>
+        <a href="#stop_proxy/2" data-no-tooltip="" translate="no">stop_proxy(store_id, pid)</a>
 
       </div>
 
@@ -183,14 +184,14 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
 <p>Returns a specification to start this module under a supervisor.</p><p>See <a href="https://hexdocs.pm/elixir/Supervisor.html"><code class="inline">Supervisor</code></a>.</p>
   </section>
 </section>
-<section class="detail" id="list_proxies/0">
+<section class="detail" id="list_proxies/1">
 
   <div class="detail-header">
-    <a href="#list_proxies/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#list_proxies/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">list_proxies()</h1>
+      <h1 class="signature" translate="no">list_proxies(store_id)</h1>
 
 
     </div>
@@ -198,7 +199,7 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
 
   <section class="docstring">
 
-<p>List all running proxy processes.</p>
+<p>List all running proxy processes for a specific store.</p>
   </section>
 </section>
 <section class="detail" id="start_link/1">
@@ -208,7 +209,7 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">start_link(init_arg)</h1>
+      <h1 class="signature" translate="no">start_link(opts)</h1>
 
 
     </div>
@@ -237,14 +238,14 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
 <p>Start a supervised SubscriptionProxy.</p>
   </section>
 </section>
-<section class="detail" id="stop_proxy/1">
+<section class="detail" id="stop_proxy/2">
 
   <div class="detail-header">
-    <a href="#stop_proxy/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#stop_proxy/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">stop_proxy(pid)</h1>
+      <h1 class="signature" translate="no">stop_proxy(store_id, pid)</h1>
 
 
     </div>
@@ -263,9 +264,9 @@ when they crash, and their PIDs are updated in the ExESDB store.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.1.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.1.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
 
           </span>
 
