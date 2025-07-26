@@ -10,7 +10,7 @@ defmodule SampleApp.Domain.CastVote.MaybeCastVoteV1 do
   - Voter ID must be provided
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.CastVote.{CommandV1, EventV1}
   
   @doc """

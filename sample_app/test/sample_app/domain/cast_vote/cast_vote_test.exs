@@ -1,7 +1,7 @@
 defmodule SampleApp.Domain.CastVote.CastVoteTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.CastVote.{CommandV1, EventV1, MaybeCastVoteV1, CastedToStateV1}
   
   describe "CommandV1 validation" do

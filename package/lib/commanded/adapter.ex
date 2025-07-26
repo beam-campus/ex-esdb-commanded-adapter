@@ -33,7 +33,7 @@ defmodule ExESDB.Commanded.Adapter do
 
   alias ExESDB.Commanded.Config
 
-  @pubsub_name :ex_esdb_pubsub
+  @pubsub_name :ex_esdb_events
 
   @doc """
   Attempts to extract the OTP application name from a module.
@@ -92,7 +92,7 @@ defmodule ExESDB.Commanded.Adapter do
     prefix = stream_prefix(adapter_meta)
     full_stream_id = prefix <> stream_uuid
 
-    event_type_mapper = Keyword.fetch!(adapter_meta, :event_type_mapper)
+    event_type_mapper = Map.fetch!(adapter_meta, :event_type_mapper)
 
     # Normalize expected version for ExESDB 0-based indexing
     normalized_expected_version = StreamHelper.normalize_expected_version(expected_version)
@@ -110,6 +110,8 @@ defmodule ExESDB.Commanded.Adapter do
     for event <- new_events do
       Logger.info("ADAPTER: Event type: #{event.event_type}, ID: #{event.event_id}")
     end
+
+    Logger.info("ADAPTER: Appending events to stream '#{full_stream_id}' (ExESDB will publish to :ex_esdb_events PubSub on '#{store}:$all')")
 
     # Use normalized expected version
     case API.append_events(store, full_stream_id, normalized_expected_version, new_events) do

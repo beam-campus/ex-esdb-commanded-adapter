@@ -6,7 +6,7 @@ defmodule SampleApp.Domain.ExpireCountdown.EventHandlerV1 do
   """
   
   alias SampleApp.Domain.ExpireCountdown.EventV1
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   
   @spec apply(Poll.t(), EventV1.t()) :: Poll.t()
   def apply(%Poll{} = poll, %EventV1{} = event) do

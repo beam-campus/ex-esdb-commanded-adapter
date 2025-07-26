@@ -6,7 +6,7 @@ defmodule SampleApp.Domain.InitializePoll.InitializedToStateV1 do
   setting all the initial state from the event.
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.InitializePoll.EventV1
   
   @doc """
@@ -25,7 +25,8 @@ defmodule SampleApp.Domain.InitializePoll.InitializedToStateV1 do
       status: :active,
       votes: %{},
       created_at: event.initialized_at,
-      closed_at: nil
+      closed_at: nil,
+      version: event.version
     }
   end
 end

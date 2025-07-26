@@ -7,7 +7,7 @@ defmodule SampleApp.Domain.StartExpirationCountdown.CountdownStartedToStateV1 do
   enhanced to track countdown status.
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.StartExpirationCountdown.EventV1
   
   @doc """

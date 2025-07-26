@@ -9,7 +9,7 @@ defmodule SampleApp.Domain.StartExpirationCountdown.MaybeStartExpirationCountdow
   - Expiration time must be in the future
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.StartExpirationCountdown.{CommandV1, EventV1}
   
   @doc """

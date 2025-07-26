@@ -53,6 +53,33 @@ defmodule SampleApp.ReadModels.PollResults do
     }
   end
   
+  @doc """
+  Adds a vote to the poll results for a specific option.
+  
+  This function increments the vote count for the given option and recalculates
+  percentages, rankings, and winner determination.
+  """
+  def add_vote(%__MODULE__{} = poll_results, option_id) do
+    updated_results = 
+      poll_results.results
+      |> Enum.map(fn result ->
+        if result.option_id == option_id do
+          %{result | vote_count: result.vote_count + 1}
+        else
+          result
+        end
+      end)
+      |> recalculate_percentages_and_rankings(poll_results.total_votes + 1)
+    
+    winner = determine_winner(updated_results)
+    
+    %{poll_results |
+      total_votes: poll_results.total_votes + 1,
+      results: updated_results,
+      winner: winner
+    }
+  end
+  
   defp calculate_results(vote_counts, options, total_votes) do
     option_map = Enum.into(options, %{}, fn option -> {option.id, option.text} end)
     
@@ -70,6 +97,17 @@ defmodule SampleApp.ReadModels.PollResults do
     |> Enum.sort_by(& &1.vote_count, :desc)
     |> Enum.with_index(1)
     |> Enum.map(fn {result, rank} -> Map.put(result, :rank, rank) end)
+  end
+  
+  defp recalculate_percentages_and_rankings(results, total_votes) do
+    results
+    |> Enum.map(fn result ->
+      percentage = if total_votes > 0, do: result.vote_count / total_votes * 100, else: 0.0
+      %{result | percentage: Float.round(percentage, 2)}
+    end)
+    |> Enum.sort_by(& &1.vote_count, :desc)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {result, rank} -> %{result | rank: rank} end)
   end
   
   defp determine_winner([]), do: nil

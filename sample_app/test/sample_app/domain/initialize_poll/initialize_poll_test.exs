@@ -1,7 +1,7 @@
 defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.InitializePoll.{CommandV1, EventV1, MaybeInitializePollV1, InitializedToStateV1}
   
   describe "CommandV1 validation" do

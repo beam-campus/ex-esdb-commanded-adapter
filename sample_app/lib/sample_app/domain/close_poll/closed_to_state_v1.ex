@@ -6,7 +6,7 @@ defmodule SampleApp.Domain.ClosePoll.ClosedToStateV1 do
   setting the status to closed and the closed_at timestamp.
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.ClosePoll.EventV1
   
   @doc """

@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.3.6">
+    <meta name="project" content="ex_esdb_commanded v0.4.0">
 
 
-    <title>ExESDB.Commanded.AggregateListenerSupervisor — ex_esdb_commanded v0.3.6</title>
+    <title>ExESDB.Commanded.AggregateListenerSupervisor — ex_esdb_commanded v0.4.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.AggregateListenerSupervisor.html" />
 
-    <script defer src="dist/sidebar_items-03729033.js"></script>
+    <script defer src="dist/sidebar_items-E45D8F26.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.3.6
+          v0.4.0
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.AggregateListenerSupervisor</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.3.6)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.4.0)</small>
 
     </h1>
 
@@ -86,8 +86,8 @@ ex_esdb_commanded
 
 
     <section id="moduledoc">
-<p>DynamicSupervisor for managing AggregateListener processes.</p><p>This supervisor is responsible for:</p><ol><li>Starting and stopping AggregateListener processes</li><li>Ensuring proper supervision and restart strategies</li><li>Maintaining a registry of active listeners</li><li>Cleanup on application shutdown</li></ol><p>Each supervisor instance is associated with a specific store_id to support
-multiple stores in umbrella applications.</p>
+<p>DynamicSupervisor for managing AggregateListener processes.</p><p>Uses Swarm for distributed process registration. Each supervisor is uniquely
+identified by a combination of store_id and node().</p>
     </section>
 
 </div>
@@ -116,11 +116,9 @@ multiple stores in umbrella applications.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#list_listeners/1" data-no-tooltip="" translate="no">list_listeners(store_id)</a>
+        <a href="#hash_key/1" data-no-tooltip="" translate="no">hash_key(store_id)</a>
 
       </div>
-
-        <div class="summary-synopsis"><p>Lists all active listeners with their details for a specific store.</p></div>
 
     </div>
 
@@ -144,16 +142,6 @@ multiple stores in umbrella applications.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#stats/1" data-no-tooltip="" translate="no">stats(store_id)</a>
-
-      </div>
-
-        <div class="summary-synopsis"><p>Returns statistics about active listeners for a specific store.</p></div>
-
-    </div>
-
-    <div class="summary-row">
-      <div class="summary-signature">
         <a href="#stop_listener/2" data-no-tooltip="" translate="no">stop_listener(store_id, pid)</a>
 
       </div>
@@ -164,11 +152,9 @@ multiple stores in umbrella applications.</p>
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#stop_listeners_for_stream/2" data-no-tooltip="" translate="no">stop_listeners_for_stream(store_id, stream_id)</a>
+        <a href="#swarm_key/1" data-no-tooltip="" translate="no">swarm_key(store_id)</a>
 
       </div>
-
-        <div class="summary-synopsis"><p>Stops all listeners for a specific store and stream combination.</p></div>
 
     </div>
 
@@ -203,14 +189,14 @@ multiple stores in umbrella applications.</p>
 <p>Returns a specification to start this module under a supervisor.</p><p>See <a href="https://hexdocs.pm/elixir/Supervisor.html"><code class="inline">Supervisor</code></a>.</p>
   </section>
 </section>
-<section class="detail" id="list_listeners/1">
+<section class="detail" id="hash_key/1">
 
   <div class="detail-header">
-    <a href="#list_listeners/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#hash_key/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">list_listeners(store_id)</h1>
+      <h1 class="signature" translate="no">hash_key(store_id)</h1>
 
 
     </div>
@@ -218,20 +204,7 @@ multiple stores in umbrella applications.</p>
 
   <section class="docstring">
 
-      <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> list_listeners(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: [
-  %{
-    store_id: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(),
-    stream_id: <a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>(),
-    subscriber: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">pid</a>(),
-    listener_pid: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">pid</a>()
-  }
-]</pre>
-
-      </div>
-
-<p>Lists all active listeners with their details for a specific store.</p>
   </section>
 </section>
 <section class="detail" id="start_link/1">
@@ -276,34 +249,6 @@ multiple stores in umbrella applications.</p>
 <p>Starts a new AggregateListener under supervision.</p><p>Returns the PID of the started listener or an error.</p>
   </section>
 </section>
-<section class="detail" id="stats/1">
-
-  <div class="detail-header">
-    <a href="#stats/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
-      <i class="ri-link-m" aria-hidden="true"></i>
-    </a>
-    <div class="heading-with-actions">
-      <h1 class="signature" translate="no">stats(store_id)</h1>
-
-
-    </div>
-  </div>
-
-  <section class="docstring">
-
-      <div class="specs">
-
-          <pre translate="no"><span class="attribute">@spec</span> stats(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) :: %{
-  total_listeners: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">non_neg_integer</a>(),
-  listeners_by_store: %{required(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>()) =&gt; <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">non_neg_integer</a>()},
-  active_streams: [<a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>()]
-}</pre>
-
-      </div>
-
-<p>Returns statistics about active listeners for a specific store.</p>
-  </section>
-</section>
 <section class="detail" id="stop_listener/2">
 
   <div class="detail-header">
@@ -328,14 +273,14 @@ multiple stores in umbrella applications.</p>
 <p>Stops a specific AggregateListener.</p>
   </section>
 </section>
-<section class="detail" id="stop_listeners_for_stream/2">
+<section class="detail" id="swarm_key/1">
 
   <div class="detail-header">
-    <a href="#stop_listeners_for_stream/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#swarm_key/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">stop_listeners_for_stream(store_id, stream_id)</h1>
+      <h1 class="signature" translate="no">swarm_key(store_id)</h1>
 
 
     </div>
@@ -343,13 +288,7 @@ multiple stores in umbrella applications.</p>
 
   <section class="docstring">
 
-      <div class="specs">
 
-          <pre translate="no"><span class="attribute">@spec</span> stop_listeners_for_stream(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>()) :: :ok</pre>
-
-      </div>
-
-<p>Stops all listeners for a specific store and stream combination.</p>
   </section>
 </section>
 
@@ -360,9 +299,9 @@ multiple stores in umbrella applications.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.4.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0">Hex Preview</a>
 
           </span>
 

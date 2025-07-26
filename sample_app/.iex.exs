@@ -5,7 +5,7 @@
 alias SampleApp.VotingREPL, as: Voting
 alias SampleApp.REPLWelcome, as: Welcome
 alias SampleApp.CommandedApp
-alias SampleApp.Shared.Poll
+alias SampleApp.Aggregates.Poll
 
 # Show welcome message
 Welcome.welcome()

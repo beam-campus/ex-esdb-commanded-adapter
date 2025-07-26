@@ -25,7 +25,10 @@ defmodule SampleApp.MixProject do
       {:ex_esdb_gater, path: "../../ex-esdb-gater/system/", override: true},
       {:ex_esdb_commanded, path: "../package/"},
       {:ex_esdb, path: "../../ex-esdb/package/"},
-      {:cachex, "~> 3.6"}
+      {:cachex, "~> 3.6"},
+      
+      # Property-based testing
+      {:stream_data, "~> 0.6", only: [:test, :dev]}
     ]
   end
 end

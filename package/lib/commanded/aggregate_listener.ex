@@ -3,10 +3,9 @@ defmodule ExESDB.Commanded.AggregateListener do
   A process that subscribes to the EventStore's Phoenix PubSub `<store>:$all` topic
   and filters events by stream_id for aggregate transient subscriptions.
 
-  This replaces the previous subscription mechanism for aggregates, providing
-  a more scalable approach that leverages Phoenix PubSub for event distribution.
+  Simplified with Swarm for process distribution.
 
-  Each AggregateListener process:
+  Each AggregateListener processes:
   1. Subscribes to the `<store>:$all` Phoenix PubSub topic
   2. Filters incoming events based on the target stream_id
   3. Transforms ExESDB.Schema.EventRecord to Commanded.EventStore.RecordedEvent
@@ -15,36 +14,50 @@ defmodule ExESDB.Commanded.AggregateListener do
 
   use GenServer
   require Logger
-
   alias ExESDB.Commanded.Mapper
   alias ExESDBGater.API
   alias Phoenix.PubSub
+
+  @retry_interval 1_000  # Retry interval for Swarm registration
 
   @type listener_config :: %{
           store_id: atom(),
           stream_id: String.t(),
           subscriber: pid(),
-          pubsub_name: atom(),
           replay_historical_events?: boolean()
         }
 
   # Public API
 
   @doc """
-  Starts an AggregateListener for the given stream.
+  Starts an AggregateListener for the given stream using Swarm.
 
   ## Parameters
   - config: Map containing:
     - store_id: The EventStore identifier
     - stream_id: The target stream to filter events for
     - subscriber: The process to send filtered events to
-    - pubsub_name: The Phoenix PubSub name (defaults to :ex_esdb_pubsub)
     - replay_historical_events?: Whether to replay historical events on startup (defaults to true)
   """
   @spec start_link(listener_config()) :: {:ok, pid()} | {:error, term()}
   def start_link(config) do
-    process_name = generate_process_name(config)
-    GenServer.start_link(__MODULE__, config, name: process_name)
+    store_id = Map.fetch!(config, :store_id)
+    key = :erlang.phash2({store_id, node()})
+    name = {:aggregate_listener, key}
+
+    case Swarm.register_name(name, __MODULE__, :start_link, [config]) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:error, {:already_registered, pid}} ->
+        {:ok, pid}
+
+      {:error, _reason} ->
+        # Start the process anyway and retry registration
+        {:ok, pid} = GenServer.start_link(__MODULE__, config)
+        Process.send_after(pid, {:retry_registration, name, config}, @retry_interval)
+        {:ok, pid}
+    end
   end
 
   @doc """
@@ -53,8 +66,11 @@ defmodule ExESDB.Commanded.AggregateListener do
   """
   @spec start(listener_config()) :: {:ok, pid()} | {:error, term()}
   def start(config) do
-    process_name = generate_process_name(config)
-    GenServer.start(__MODULE__, config, name: process_name)
+    GenServer.start(
+      __MODULE__,
+      config,
+      name: Module.concat(__MODULE__, hash_key(config.store_id))
+    )
   end
 
   @doc """
@@ -72,21 +88,19 @@ defmodule ExESDB.Commanded.AggregateListener do
     store_id = Map.fetch!(config, :store_id)
     stream_id = Map.fetch!(config, :stream_id)
     subscriber = Map.fetch!(config, :subscriber)
-    pubsub_name = Map.get(config, :pubsub_name, :ex_esdb_pubsub)
     replay_historical = Map.get(config, :replay_historical_events?, true)
+    Swarm.register_name(swarm_key(store_id), self())
 
     # Subscribe to the store's $all topic on Phoenix PubSub
     topic = "#{store_id}:$all"
 
-    :ok =
-      pubsub_name
-      |> PubSub.subscribe(topic)
+    Logger.info("AggregateListener: Subscribing to :ex_esdb_events PubSub on topic '#{topic}'")
+    :ok = PubSub.subscribe(:ex_esdb_events, topic)
 
     state = %{
       store_id: store_id,
       stream_id: stream_id,
       subscriber: subscriber,
-      pubsub_name: pubsub_name,
       topic: topic,
       events_forwarded: 0,
       events_filtered: 0,
@@ -94,7 +108,9 @@ defmodule ExESDB.Commanded.AggregateListener do
       historical_replay_done: false
     }
 
-    Logger.info("AggregateListener[#{Map.get(config, :store_id, :unknown)}]: Started for stream '#{stream_id}' on topic '#{topic}'")
+    Logger.info(
+      "AggregateListener[#{Map.get(config, :store_id, :unknown)}]: Started for stream '#{stream_id}' on topic '#{topic}'"
+    )
 
     # If we should replay historical events, do it after initialization
     state =
@@ -111,6 +127,7 @@ defmodule ExESDB.Commanded.AggregateListener do
 
   @impl GenServer
   def handle_info({:events, events}, state) when is_list(events) do
+    Logger.info("AggregateListener[#{state.store_id}]: Received #{length(events)} events on topic '#{state.topic}'")
     # Filter events for our target stream and forward them
     filtered_events = filter_and_transform_events(events, state.stream_id)
 
@@ -141,7 +158,9 @@ defmodule ExESDB.Commanded.AggregateListener do
 
   @impl GenServer
   def handle_info(:replay_historical_events, state) do
-    Logger.info("AggregateListener[#{state.store_id}]: Replaying historical events for stream '#{state.stream_id}'")
+    Logger.info(
+      "AggregateListener[#{state.store_id}]: Replaying historical events for stream '#{state.stream_id}'"
+    )
 
     case replay_historical_events(state) do
       :ok ->
@@ -166,7 +185,7 @@ defmodule ExESDB.Commanded.AggregateListener do
   @impl GenServer
   def handle_info(:unsubscribe, state) do
     Logger.info("AggregateListener[#{state.store_id}]: Unsubscribing from '#{state.topic}'")
-    :ok = PubSub.unsubscribe(state.pubsub_name, state.topic)
+    :ok = PubSub.unsubscribe(:ex_esdb_events, state.topic)
     {:stop, :normal, state}
   end
 
@@ -180,8 +199,41 @@ defmodule ExESDB.Commanded.AggregateListener do
   end
 
   @impl GenServer
+  def handle_info({:retry_registration, name, config}, state) do
+    case Swarm.register_name(name, __MODULE__, :start_link, [config]) do
+      {:ok, _pid} ->
+        {:noreply, state}
+
+      {:error, {:already_registered, _pid}} ->
+        {:noreply, state}
+
+      {:error, _reason} ->
+        Process.send_after(self(), {:retry_registration, name, config}, @retry_interval)
+        {:noreply, state}
+    end
+  end
+
+  def handle_info({:swarm, :die}, state) do
+    {:stop, :shutdown, state}
+  end
+
+  def handle_info({:swarm, :begin_handoff}, state) do
+    {:noreply, state}
+  end
+
+  def handle_info({:swarm, :end_handoff}, state) do
+    {:noreply, state}
+  end
+
+  def handle_info({:swarm, :resolve_conflict}, state) do
+    {:noreply, state}
+  end
+
   def handle_info(msg, state) do
-    Logger.debug("AggregateListener[#{state.store_id}]: Received unexpected message: #{inspect(msg)}")
+    Logger.debug(
+      "AggregateListener[#{state.store_id}]: Received unexpected message: #{inspect(msg)}"
+    )
+
     {:noreply, state}
   end
 
@@ -209,39 +261,24 @@ defmodule ExESDB.Commanded.AggregateListener do
       "AggregateListener[#{state.store_id}]: Terminating for stream '#{state.stream_id}' (reason: #{inspect(reason)})"
     )
 
-    :ok = unsubscribe(state.pubsub_name, state.topic)
+    :ok = unsubscribe(state.topic)
 
     :ok
   end
 
-  defp unsubscribe(pubsub_name, topic) do
+  defp unsubscribe(topic) do
     # Unsubscribe from PubSub if still subscribed
     try do
-      :ok =
-        pubsub_name
-        |> PubSub.unsubscribe(topic)
+      :ok = PubSub.unsubscribe(:ex_esdb_events, topic)
     catch
       _, _ -> :ok
     end
   end
 
+  defp hash_key(store_id), do: Integer.to_string(:erlang.phash2({store_id, node()}))
+  def swarm_key(store_id), do: {:aggregate_listener, hash_key(store_id)}
+
   # Private functions
-
-  # Generate a store-aware process name to avoid conflicts in umbrella applications
-  @spec generate_process_name(listener_config()) :: {:via, module(), term()}
-  defp generate_process_name(config) do
-    store_id = Map.fetch!(config, :store_id)
-    stream_id = Map.fetch!(config, :stream_id)
-    subscriber = Map.fetch!(config, :subscriber)
-    
-    # Create a unique identifier for this listener within the store
-    listener_key = {store_id, stream_id, subscriber}
-    
-    # Use a store-specific Registry via tuple
-    registry_name = Module.concat([ExESDB.Commanded.AggregateListenerSupervisor, store_id, Registry])
-    {:via, Registry, {registry_name, {:process, listener_key}}}
-  end
-
   @spec filter_and_transform_events(
           events :: [ExESDB.Schema.EventRecord.t()],
           target_stream_id :: String.t()
@@ -303,7 +340,10 @@ defmodule ExESDB.Commanded.AggregateListener do
           # Read all events from the beginning of the stream
           case API.get_events(store_id, stream_id, 0, version, :forward) do
             {:ok, []} ->
-              Logger.debug("AggregateListener: No historical events found for stream '#{stream_id}'")
+              Logger.debug(
+                "AggregateListener: No historical events found for stream '#{stream_id}'"
+              )
+
               :ok
 
             {:ok, events} when is_list(events) ->
@@ -329,25 +369,31 @@ defmodule ExESDB.Commanded.AggregateListener do
               Logger.debug(
                 "AggregateListener: Stream '#{stream_id}' not found, no historical events to replay"
               )
+
               :ok
 
             {:error, reason} ->
               Logger.warning(
                 "AggregateListener: Failed to read historical events for stream '#{stream_id}': #{inspect(reason)}"
               )
+
               {:error, reason}
           end
-          
+
         -1 ->
           # Stream exists but has no events (version -1)
-          Logger.debug("AggregateListener: Stream '#{stream_id}' has no events, skipping historical replay")
+          Logger.debug(
+            "AggregateListener: Stream '#{stream_id}' has no events, skipping historical replay"
+          )
+
           :ok
-          
+
         invalid_version ->
           # Handle invalid version (nil, atom, string, etc.)
           Logger.warning(
             "AggregateListener: Invalid version #{inspect(invalid_version)} for stream '#{stream_id}', skipping historical replay"
           )
+
           :ok
       end
     rescue

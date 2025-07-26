@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.3.6">
+    <meta name="project" content="ex_esdb_commanded v0.4.0">
 
 
-    <title>Getting Started — ex_esdb_commanded v0.3.6</title>
+    <title>Getting Started — ex_esdb_commanded v0.4.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/getting-started.html" />
 
-    <script defer src="dist/sidebar_items-03729033.js"></script>
+    <script defer src="dist/sidebar_items-E45D8F26.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.3.6
+          v0.4.0
         </div>
       </div>
     </div>
@@ -82,22 +82,22 @@ ex_esdb_commanded
   </div>
 
 
-<h3 id="getting-started-guide" class="section-heading"><a href="#getting-started-guide" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Getting Started Guide</span></h3><hr class="thin"/><h2 id="introduction" class="section-heading"><a href="#introduction" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Introduction</span></h2><p>Welcome to the ExESDB Commanded Adapter! This guide will walk you through setting up the adapter to work with your Commanded application using ExESDB as your event store.</p><h2 id="prerequisites" class="section-heading"><a href="#prerequisites" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Prerequisites</span></h2><ul><li><strong>Elixir Version:</strong> Ensure your Elixir environment is 1.17 or newer.</li><li><strong>Commanded Library:</strong> This package acts as an adapter for Commanded, so you'll need to have it set up in your Elixir project.</li></ul><h2 id="installation" class="section-heading"><a href="#installation" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Installation</span></h2><p>Add the adapter to your Mix dependencies in <code class="inline">mix.exs</code>:</p><pre><code class="makeup elixir" translate="no"><span class="kd">def</span><span class="w"> </span><span class="nf">deps</span><span class="w"> </span><span class="k" data-group-id="0331746496-1">do</span><span class="w">
-  </span><span class="p" data-group-id="0331746496-2">[</span><span class="w">
-    </span><span class="p" data-group-id="0331746496-3">{</span><span class="ss">:ex_esdb_commanded</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;~&gt; 0.1.0&quot;</span><span class="p" data-group-id="0331746496-3">}</span><span class="p">,</span><span class="w">
-  </span><span class="p" data-group-id="0331746496-2">]</span><span class="w">
-</span><span class="k" data-group-id="0331746496-1">end</span></code></pre><p>Run <a href="https://hexdocs.pm/mix/Mix.Tasks.Deps.Get.html"><code class="inline">mix deps.get</code></a> to fetch the dependency.</p><h2 id="configuration" class="section-heading"><a href="#configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Configuration</span></h2><p>Configuration can be done in your <code class="inline">config/config.exs</code> file.</p><h3 id="basic-configuration" class="section-heading"><a href="#basic-configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Basic Configuration</span></h3><p>Add the following configuration to specify the adapter for your Commanded application:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:my_app</span><span class="p">,</span><span class="w"> </span><span class="nc">MyApp.CommandedApp</span><span class="p">,</span><span class="w">
-  </span><span class="ss">event_store</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="2704376095-1">[</span><span class="w">
+<h3 id="getting-started-guide" class="section-heading"><a href="#getting-started-guide" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Getting Started Guide</span></h3><hr class="thin"/><h2 id="introduction" class="section-heading"><a href="#introduction" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Introduction</span></h2><p>Welcome to the ExESDB Commanded Adapter! This guide will walk you through setting up the adapter to work with your Commanded application using ExESDB as your event store.</p><h2 id="prerequisites" class="section-heading"><a href="#prerequisites" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Prerequisites</span></h2><ul><li><strong>Elixir Version:</strong> Ensure your Elixir environment is 1.17 or newer.</li><li><strong>Commanded Library:</strong> This package acts as an adapter for Commanded, so you'll need to have it set up in your Elixir project.</li></ul><h2 id="installation" class="section-heading"><a href="#installation" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Installation</span></h2><p>Add the adapter to your Mix dependencies in <code class="inline">mix.exs</code>:</p><pre><code class="makeup elixir" translate="no"><span class="kd">def</span><span class="w"> </span><span class="nf">deps</span><span class="w"> </span><span class="k" data-group-id="5258000170-1">do</span><span class="w">
+  </span><span class="p" data-group-id="5258000170-2">[</span><span class="w">
+    </span><span class="p" data-group-id="5258000170-3">{</span><span class="ss">:ex_esdb_commanded</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;~&gt; 0.1.0&quot;</span><span class="p" data-group-id="5258000170-3">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="5258000170-2">]</span><span class="w">
+</span><span class="k" data-group-id="5258000170-1">end</span></code></pre><p>Run <a href="https://hexdocs.pm/mix/Mix.Tasks.Deps.Get.html"><code class="inline">mix deps.get</code></a> to fetch the dependency.</p><h2 id="configuration" class="section-heading"><a href="#configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Configuration</span></h2><p>Configuration can be done in your <code class="inline">config/config.exs</code> file.</p><h3 id="basic-configuration" class="section-heading"><a href="#basic-configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Basic Configuration</span></h3><p>Add the following configuration to specify the adapter for your Commanded application:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:my_app</span><span class="p">,</span><span class="w"> </span><span class="nc">MyApp.CommandedApp</span><span class="p">,</span><span class="w">
+  </span><span class="ss">event_store</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="0498422365-1">[</span><span class="w">
     </span><span class="ss">adapter</span><span class="p">:</span><span class="w"> </span><span class="nc">ExESDB.Commanded.Adapter</span><span class="p">,</span><span class="w">
     </span><span class="ss">store_id</span><span class="p">:</span><span class="w"> </span><span class="ss">:my_store_id</span><span class="p">,</span><span class="w">
     </span><span class="ss">stream_prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my_app_&quot;</span><span class="p">,</span><span class="w">
     </span><span class="ss">event_type_mapper</span><span class="p">:</span><span class="w"> </span><span class="nc">MyApp.EventTypeMapper</span><span class="w">
-  </span><span class="p" data-group-id="2704376095-1">]</span></code></pre><h3 id="environment-variables" class="section-heading"><a href="#environment-variables" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Environment Variables</span></h3><p>Make sure to check environment variables for dynamic configurations:</p><ul><li><code class="inline">EXESDB_COMMANDED_STORE_ID</code></li><li><code class="inline">EXESDB_COMMANDED_STREAM_PREFIX</code></li></ul><p>Set these accordingly in your environment or <code class="inline">runtime.exs</code>.</p><h3 id="advanced-options" class="section-heading"><a href="#advanced-options" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Advanced Options</span></h3><p>You can also tweak other settings like connection timeout, retry attempts, and backoff intervals:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:ex_esdb_commanded_adapter</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="0498422365-1">]</span></code></pre><h3 id="environment-variables" class="section-heading"><a href="#environment-variables" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Environment Variables</span></h3><p>Make sure to check environment variables for dynamic configurations:</p><ul><li><code class="inline">EXESDB_COMMANDED_STORE_ID</code></li><li><code class="inline">EXESDB_COMMANDED_STREAM_PREFIX</code></li></ul><p>Set these accordingly in your environment or <code class="inline">runtime.exs</code>.</p><h3 id="advanced-options" class="section-heading"><a href="#advanced-options" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Advanced Options</span></h3><p>You can also tweak other settings like connection timeout, retry attempts, and backoff intervals:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:ex_esdb_commanded_adapter</span><span class="p">,</span><span class="w">
   </span><span class="ss">connection_timeout</span><span class="p">:</span><span class="w"> </span><span class="mi">15_000</span><span class="p">,</span><span class="w">
   </span><span class="ss">retry_attempts</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w">
   </span><span class="ss">retry_backoff</span><span class="p">:</span><span class="w"> </span><span class="mi">1_500</span></code></pre><h2 id="using-the-adapter" class="section-heading"><a href="#using-the-adapter" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Using the Adapter</span></h2><ol><li><p><strong>Start Your ExESDB Instance:</strong> Ensure your ExESDB instance is running and reachable.</p></li><li><p><strong>Initialize Commanded:</strong> Once configured, Commanded will use the ExESDB adapter for event storage.</p></li><li><p><strong>Event Handling:</strong> Use your registered event type mapper to handle event types efficiently.</p></li></ol><h2 id="debugging-and-logs" class="section-heading"><a href="#debugging-and-logs" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Debugging and Logs</span></h2><p>Enable detailed logging to troubleshoot:</p><pre><code class="makeup elixir" translate="no"><span class="n">config</span><span class="w"> </span><span class="ss">:logger</span><span class="p">,</span><span class="w"> </span><span class="ss">:console</span><span class="p">,</span><span class="w">
   </span><span class="ss">format</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$time [$level] $metadata$message</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
-  </span><span class="ss">metadata</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="9873902742-1">[</span><span class="ss">:mfa</span><span class="p">,</span><span class="w"> </span><span class="ss">:request_id</span><span class="p" data-group-id="9873902742-1">]</span></code></pre><p>Check logs for information on event handling and adapter performance.</p><h2 id="summary" class="section-heading"><a href="#summary" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Summary</span></h2><p>Congratulations! You’ve set up and configured the ExESDB Commanded Adapter in your project. Enjoy a seamless event-driven architecture with the power of Commanded and ExESDB.</p><hr class="thin"/>
+  </span><span class="ss">metadata</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="6729507206-1">[</span><span class="ss">:mfa</span><span class="p">,</span><span class="w"> </span><span class="ss">:request_id</span><span class="p" data-group-id="6729507206-1">]</span></code></pre><p>Check logs for information on event handling and adapter performance.</p><h2 id="summary" class="section-heading"><a href="#summary" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Summary</span></h2><p>Congratulations! You’ve set up and configured the ExESDB Commanded Adapter in your project. Enjoy a seamless event-driven architecture with the power of Commanded and ExESDB.</p><hr class="thin"/>
 
 </div>
 
@@ -131,11 +131,11 @@ Event Sourcing with CQRS
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.4.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0">Hex Preview</a>
 
-              (<a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6/show/guides/getting-started.md">current file</a>)
+              (<a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0/show/guides/getting-started.md">current file</a>)
 
           </span>
 

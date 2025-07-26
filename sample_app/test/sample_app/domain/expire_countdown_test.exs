@@ -2,7 +2,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
   use ExUnit.Case, async: true
   
   alias SampleApp.Domain.ExpireCountdown.{CommandV1, EventV1, MaybeExpireCountdownV1, EventHandlerV1}
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   
   describe "ExpireCountdown.CommandV1" do
     test "creates valid command with required fields" do

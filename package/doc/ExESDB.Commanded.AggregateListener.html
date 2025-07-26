@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.3.6">
+    <meta name="project" content="ex_esdb_commanded v0.4.0">
 
 
-    <title>ExESDB.Commanded.AggregateListener — ex_esdb_commanded v0.3.6</title>
+    <title>ExESDB.Commanded.AggregateListener — ex_esdb_commanded v0.4.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.AggregateListener.html" />
 
-    <script defer src="dist/sidebar_items-03729033.js"></script>
+    <script defer src="dist/sidebar_items-E45D8F26.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.3.6
+          v0.4.0
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.AggregateListener</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.3.6)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.4.0)</small>
 
     </h1>
 
@@ -87,8 +87,7 @@ ex_esdb_commanded
 
     <section id="moduledoc">
 <p>A process that subscribes to the EventStore's Phoenix PubSub <code class="inline">&lt;store&gt;:$all</code> topic
-and filters events by stream_id for aggregate transient subscriptions.</p><p>This replaces the previous subscription mechanism for aggregates, providing
-a more scalable approach that leverages Phoenix PubSub for event distribution.</p><p>Each AggregateListener process:</p><ol><li>Subscribes to the <code class="inline">&lt;store&gt;:$all</code> Phoenix PubSub topic</li><li>Filters incoming events based on the target stream_id</li><li>Transforms ExESDB.Schema.EventRecord to Commanded.EventStore.RecordedEvent</li><li>Forwards matching events to the subscriber process</li></ol>
+and filters events by stream_id for aggregate transient subscriptions.</p><p>Simplified with Swarm for process distribution.</p><p>Each AggregateListener processes:</p><ol><li>Subscribes to the <code class="inline">&lt;store&gt;:$all</code> Phoenix PubSub topic</li><li>Filters incoming events based on the target stream_id</li><li>Transforms ExESDB.Schema.EventRecord to Commanded.EventStore.RecordedEvent</li><li>Forwards matching events to the subscriber process</li></ol>
     </section>
 
 </div>
@@ -146,7 +145,7 @@ Useful for transient subscriptions where we don't want to crash the caller.</p><
 
       </div>
 
-        <div class="summary-synopsis"><p>Starts an AggregateListener for the given stream.</p></div>
+        <div class="summary-synopsis"><p>Starts an AggregateListener for the given stream using Swarm.</p></div>
 
     </div>
 
@@ -157,6 +156,14 @@ Useful for transient subscriptions where we don't want to crash the caller.</p><
       </div>
 
         <div class="summary-synopsis"><p>Stops the AggregateListener process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#swarm_key/1" data-no-tooltip="" translate="no">swarm_key(store_id)</a>
+
+      </div>
 
     </div>
 
@@ -194,7 +201,6 @@ Useful for transient subscriptions where we don't want to crash the caller.</p><
   store_id: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(),
   stream_id: <a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>(),
   subscriber: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">pid</a>(),
-  pubsub_name: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(),
   replay_historical_events?: <a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">boolean</a>()
 }</pre>
 
@@ -279,7 +285,7 @@ Useful for transient subscriptions where we don't want to crash the caller.</p>
 
       </div>
 
-<p>Starts an AggregateListener for the given stream.</p><h2 id="start_link/1-parameters" class="section-heading"><a href="#start_link/1-parameters" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Parameters</span></h2><ul><li>config: Map containing:<ul><li>store_id: The EventStore identifier</li><li>stream_id: The target stream to filter events for</li><li>subscriber: The process to send filtered events to</li><li>pubsub_name: The Phoenix PubSub name (defaults to :ex_esdb_pubsub)</li><li>replay_historical_events?: Whether to replay historical events on startup (defaults to true)</li></ul></li></ul>
+<p>Starts an AggregateListener for the given stream using Swarm.</p><h2 id="start_link/1-parameters" class="section-heading"><a href="#start_link/1-parameters" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Parameters</span></h2><ul><li>config: Map containing:<ul><li>store_id: The EventStore identifier</li><li>stream_id: The target stream to filter events for</li><li>subscriber: The process to send filtered events to</li><li>replay_historical_events?: Whether to replay historical events on startup (defaults to true)</li></ul></li></ul>
   </section>
 </section>
 <section class="detail" id="stop/1">
@@ -306,6 +312,24 @@ Useful for transient subscriptions where we don't want to crash the caller.</p>
 <p>Stops the AggregateListener process.</p>
   </section>
 </section>
+<section class="detail" id="swarm_key/1">
+
+  <div class="detail-header">
+    <a href="#swarm_key/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">swarm_key(store_id)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
 
     </div>
   </section>
@@ -314,9 +338,9 @@ Useful for transient subscriptions where we don't want to crash the caller.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.4.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0">Hex Preview</a>
 
           </span>
 

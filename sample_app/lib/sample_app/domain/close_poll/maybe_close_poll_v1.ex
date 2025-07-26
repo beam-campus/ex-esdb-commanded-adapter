@@ -8,7 +8,7 @@ defmodule SampleApp.Domain.ClosePoll.MaybeClosePollV1 do
   - Cannot close an already closed poll
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.ClosePoll.{CommandV1, EventV1}
   
   @doc """
