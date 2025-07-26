@@ -8,7 +8,7 @@ defmodule SampleApp.Domain.ExpireCountdown.MaybeExpireCountdownV1 do
   - Poll must not already be expired
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.ExpireCountdown.{CommandV1, EventV1}
   
   @doc """

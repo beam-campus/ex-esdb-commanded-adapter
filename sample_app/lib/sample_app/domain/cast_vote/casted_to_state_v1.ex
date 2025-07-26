@@ -6,7 +6,7 @@ defmodule SampleApp.Domain.CastVote.CastedToStateV1 do
   adding the vote to the votes map.
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.CastVote.EventV1
   
   @doc """

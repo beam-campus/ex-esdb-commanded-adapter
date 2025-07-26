@@ -7,7 +7,7 @@ defmodule SampleApp.Router do
   """
   use Commanded.Commands.Router
 
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.InitializePoll
   alias SampleApp.Domain.CastVote
   alias SampleApp.Domain.ClosePoll

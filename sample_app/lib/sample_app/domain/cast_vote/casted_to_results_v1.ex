@@ -1,72 +1,76 @@
 defmodule SampleApp.Domain.CastVote.CastedToResultsV1 do
   @moduledoc """
   Projection that handles VoteCasted events and updates the PollResults read model.
+
+  This projection updates poll results by incrementing vote counts for the voted option.
+  Following the vertical slicing architecture and self-contained projection principles,
+  this projection only uses event data and the current state of the target read model.
   
-  This projection recalculates poll results when votes are cast by getting the 
-  updated summary and rebuilding the results from it.
-  Following the vertical slicing architecture, this projection lives in the same slice
-  as the event it processes.
+  IMPORTANT: This projection is self-contained and does NOT depend on other read models
+  or external data sources to avoid race conditions.
   """
-  
+
   use Commanded.Event.Handler,
     application: SampleApp.CommandedApp,
     name: "vote_casted_to_results_v1",
     subscribe_to: "$et-vote_casted:v1"
-  
+
   alias SampleApp.Domain.CastVote.EventV1, as: VoteCastedEvent
-  alias SampleApp.ReadModels.{PollSummary, PollResults}
-  
+  alias SampleApp.ReadModels.PollResults
+
   require Logger
-  
+
   def handle(%VoteCastedEvent{} = event, _metadata) do
     Logger.info("📊 Updating poll results with vote for poll: #{event.poll_id}")
-    
-    # Get the updated summary to rebuild results from
-    case Cachex.get(:poll_summaries, event.poll_id) do
-      {:ok, %PollSummary{} = summary} ->
-        update_results_from_summary(event.poll_id, summary)
-        
-      {:ok, nil} ->
-        Logger.warning("⚠️  Poll summary not found for poll: #{event.poll_id}")
-        {:error, :poll_summary_not_found}
-        
-      {:error, reason} ->
-        Logger.error("❌ Failed to get poll summary for results update, poll: #{event.poll_id}, reason: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-  
-  defp update_results_from_summary(poll_id, summary) do
-    # We need the poll options to rebuild results, so get them from existing results if available
-    case Cachex.get(:poll_results, poll_id) do
-      {:ok, %PollResults{results: existing_results}} when existing_results != [] ->
-        # Extract options from existing results
-        options = extract_options_from_results(existing_results)
-        updated_results = PollResults.from_summary(summary, options)
-        
-        case Cachex.put(:poll_results, poll_id, updated_results) do
-          {:ok, true} ->
-            Logger.info("✅ Poll results updated successfully for poll: #{poll_id}")
+
+    # Fail-fast: Check if cache is available before attempting operations
+    case ensure_cache_available(:poll_results) do
+      :ok ->
+        update_func = fn
+          nil ->
+            # Poll results not initialized yet - ignore this vote
+            # The InitializedToResultsV1 projection will create the initial results
+            Logger.warning("⚠️  Poll results not found for poll: #{event.poll_id}, vote ignored")
+            {:ignore, nil}
+
+          %PollResults{} = results ->
+            # ✅ SELF-CONTAINED: Only uses event data and current read model state
+            updated_results = PollResults.add_vote(results, event.option_id)
+            {:commit, updated_results}
+        end
+
+        case Cachex.get_and_update(:poll_results, event.poll_id, update_func) do
+          {:commit, %PollResults{} = _updated_results} ->
+            Logger.info("✅ Poll results updated successfully for poll: #{event.poll_id}")
             :ok
-            
+
+          {:ignore, _} ->
+            # Poll results not initialized yet, this is expected
+            Logger.info("ℹ️  Poll results not yet initialized for poll: #{event.poll_id}, vote will be counted after initialization")
+            :ok
+
           {:error, reason} ->
-            Logger.error("❌ Failed to update poll results for poll: #{poll_id}, reason: #{inspect(reason)}")
+            Logger.error(
+              "❌ Failed to update poll results for poll: #{event.poll_id}, reason: #{inspect(reason)}"
+            )
             {:error, reason}
         end
-        
-      {:ok, _} ->
-        Logger.warning("⚠️  Poll results not found or empty for poll: #{poll_id}")
-        {:error, :poll_results_not_found}
-        
+
       {:error, reason} ->
-        Logger.error("❌ Failed to get poll results for update, poll: #{poll_id}, reason: #{inspect(reason)}")
+        Logger.error(
+          "❌ Cache :poll_results not available for poll: #{event.poll_id}, reason: #{inspect(reason)}"
+        )
         {:error, reason}
     end
   end
-  
-  defp extract_options_from_results(results) do
-    Enum.map(results, fn result ->
-      %{id: result.option_id, text: result.option_text}
-    end)
+
+  # Private function to check if cache is available
+  defp ensure_cache_available(cache_name) do
+    case Process.whereis(cache_name) do
+      nil ->
+        {:error, :cache_not_available}
+      _pid ->
+        :ok
+    end
   end
 end

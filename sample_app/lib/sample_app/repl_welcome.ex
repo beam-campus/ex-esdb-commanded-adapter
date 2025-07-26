@@ -60,7 +60,7 @@ defmodule SampleApp.REPLWelcome do
     quote do
       alias SampleApp.VotingREPL, as: Voting
       alias SampleApp.CommandedApp
-      alias SampleApp.Shared.Poll
+      alias SampleApp.Aggregates.Poll
     end
   end
   

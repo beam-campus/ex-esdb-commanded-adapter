@@ -150,4 +150,17 @@ defmodule ExESDB.Commanded.Mapper do
         to_string(event_type)
     end
   end
+
+  defp map_event_type_to_readable(event_type, event_type_mapper)
+       when is_binary(event_type) and is_atom(event_type_mapper) do
+    try do
+      event_type
+      |> String.to_atom()
+      |> map_event_type_to_readable(event_type_mapper)
+    rescue
+      error ->
+        Logger.error("Failed to convert string event type #{inspect(event_type)} to atom: #{inspect(error)}")
+        event_type
+    end
+  end
 end

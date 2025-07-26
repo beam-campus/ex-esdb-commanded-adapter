@@ -1,7 +1,7 @@
 defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.ClosePoll.{CommandV1, EventV1, MaybeClosePollV1, ClosedToStateV1}
   
   describe "CommandV1 validation" do

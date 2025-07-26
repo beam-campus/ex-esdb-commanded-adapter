@@ -1,4 +1,4 @@
-defmodule SampleApp.Shared.Poll do
+defmodule SampleApp.Aggregates.Poll do
   @moduledoc """
   Poll aggregate root for the voting system.
   
@@ -18,7 +18,8 @@ defmodule SampleApp.Shared.Poll do
     :votes,        # Map of %{voter_id => option_id}
     :created_at,
     :closed_at,
-    :expired_at
+    :expired_at,
+    :version       # Version of the aggregate/event
   ]
 
   @type option :: %{id: String.t(), text: String.t()}
@@ -36,7 +37,8 @@ defmodule SampleApp.Shared.Poll do
     votes: votes | nil,
     created_at: DateTime.t() | nil,
     closed_at: DateTime.t() | nil,
-    expired_at: DateTime.t() | nil
+    expired_at: DateTime.t() | nil,
+    version: integer() | nil
   }
 
   @doc """
@@ -141,36 +143,24 @@ defmodule SampleApp.Shared.Poll do
   alias SampleApp.Domain.StartExpirationCountdown.CountdownStartedToStateV1
   
   @doc """
-  Applies a PollInitialized event to the aggregate.
+  Applies events to the aggregate based on event type.
   """
   def apply(%__MODULE__{} = poll, %SampleApp.Domain.InitializePoll.EventV1{} = event) do
     InitializedToStateV1.apply(poll, event)
   end
   
-  @doc """
-  Applies a VoteCasted event to the aggregate.
-  """
   def apply(%__MODULE__{} = poll, %SampleApp.Domain.CastVote.EventV1{} = event) do
     CastedToStateV1.apply(poll, event)
   end
   
-  @doc """
-  Applies a PollClosed event to the aggregate.
-  """
   def apply(%__MODULE__{} = poll, %SampleApp.Domain.ClosePoll.EventV1{} = event) do
     ClosedToStateV1.apply(poll, event)
   end
   
-  @doc """
-  Applies a CountdownExpired event to the aggregate.
-  """
   def apply(%__MODULE__{} = poll, %SampleApp.Domain.ExpireCountdown.EventV1{} = event) do
     EventHandlerV1.apply(poll, event)
   end
   
-  @doc """
-  Applies an ExpirationCountdownStarted event to the aggregate.
-  """
   def apply(%__MODULE__{} = poll, %SampleApp.Domain.StartExpirationCountdown.EventV1{} = event) do
     CountdownStartedToStateV1.apply(poll, event)
   end

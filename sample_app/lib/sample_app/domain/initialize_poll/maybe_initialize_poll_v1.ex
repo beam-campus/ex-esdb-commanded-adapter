@@ -10,7 +10,7 @@ defmodule SampleApp.Domain.InitializePoll.MaybeInitializePollV1 do
   - Expiration date must be in the future (if provided)
   """
   
-  alias SampleApp.Shared.Poll
+  alias SampleApp.Aggregates.Poll
   alias SampleApp.Domain.InitializePoll.{CommandV1, EventV1}
   
   @doc """

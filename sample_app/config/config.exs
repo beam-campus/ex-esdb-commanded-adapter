@@ -49,7 +49,8 @@ config :sample_app, SampleApp.CommandedApp,
     store_id: :sample_app,
     stream_prefix: "sample_app_",
     serializer: Jason,
-    log_level: :info
+    log_level: :info,
+    registry: :sample_app_pubsub
   ]
 
 # Configure ex_esdb_gater for API access

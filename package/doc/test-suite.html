@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.3.6">
+    <meta name="project" content="ex_esdb_commanded v0.4.0">
 
 
-    <title>Test Suite — ex_esdb_commanded v0.3.6</title>
+    <title>Test Suite — ex_esdb_commanded v0.4.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/test-suite.html" />
 
-    <script defer src="dist/sidebar_items-03729033.js"></script>
+    <script defer src="dist/sidebar_items-E45D8F26.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.3.6
+          v0.4.0
         </div>
       </div>
     </div>
@@ -117,19 +117,19 @@ ex_esdb_commanded
 </span><span class=""># Run adapter integration tests
 </span><span class="">mix test test/integration/adapter_integration_test.exs
 </span></code></pre><h2 id="test-configuration" class="section-heading"><a href="#test-configuration" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Test Configuration</span></h2><h3 id="environment-variables" class="section-heading"><a href="#environment-variables" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Environment Variables</span></h3><ul><li><code class="inline">INTEGRATION_TEST</code>: Set to enable ExESDB.System startup for integration tests</li><li><code class="inline">EXESDB_COMMANDED_STORE_ID</code>: Override default store ID for tests</li><li><code class="inline">EXESDB_COMMANDED_STREAM_PREFIX</code>: Override default stream prefix for tests</li></ul><h3 id="test-tags" class="section-heading"><a href="#test-tags" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Test Tags</span></h3><ul><li><code class="inline">@moduletag :integration</code>: Marks integration tests</li><li><code class="inline">@moduletag timeout: 120_000</code>: Sets 2-minute timeout for integration tests</li><li><code class="inline">@moduletag async: false</code>: Disables async execution for integration tests</li></ul><h2 id="test-helpers" class="section-heading"><a href="#test-helpers" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Test Helpers</span></h2><h3 id="integrationtesthelper" class="section-heading"><a href="#integrationtesthelper" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">IntegrationTestHelper</span></h3><p>Located at <code class="inline">test/support/integration_test_helper.ex</code>, provides:</p><ul><li><strong>System Management</strong>: Start/stop ExESDB.System instances</li><li><strong>Test Data Creation</strong>: Generate test events and large payloads</li><li><strong>Cleanup Utilities</strong>: Remove test data directories</li><li><strong>Readiness Checks</strong>: Wait for system initialization</li><li><strong>Event Validation</strong>: Verify recorded event structure</li></ul><h3 id="key-functions" class="section-heading"><a href="#key-functions" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Key Functions</span></h3><pre><code class="makeup elixir" translate="no"><span class="c1"># Start ExESDB.System for testing</span><span class="w">
-</span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">start_exesdb_system</span><span class="p" data-group-id="4773912088-1">(</span><span class="ss">:test_store</span><span class="p" data-group-id="4773912088-1">)</span><span class="w">
+</span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">start_exesdb_system</span><span class="p" data-group-id="6348379074-1">(</span><span class="ss">:test_store</span><span class="p" data-group-id="6348379074-1">)</span><span class="w">
 
 </span><span class="c1"># Create test events</span><span class="w">
-</span><span class="n">events</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">create_test_events</span><span class="p" data-group-id="4773912088-2">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;test_suffix&quot;</span><span class="p" data-group-id="4773912088-2">)</span><span class="w">
+</span><span class="n">events</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">create_test_events</span><span class="p" data-group-id="6348379074-2">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;test_suffix&quot;</span><span class="p" data-group-id="6348379074-2">)</span><span class="w">
 
 </span><span class="c1"># Create large payload events</span><span class="w">
-</span><span class="n">large_events</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">create_large_test_events</span><span class="p" data-group-id="4773912088-3">(</span><span class="mi">2</span><span class="p" data-group-id="4773912088-3">)</span><span class="w">
+</span><span class="n">large_events</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">create_large_test_events</span><span class="p" data-group-id="6348379074-3">(</span><span class="mi">2</span><span class="p" data-group-id="6348379074-3">)</span><span class="w">
 
 </span><span class="c1"># Clean up test data</span><span class="w">
-</span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">cleanup_test_data</span><span class="p" data-group-id="4773912088-4">(</span><span class="ss">:test_store</span><span class="p" data-group-id="4773912088-4">)</span><span class="w">
+</span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">cleanup_test_data</span><span class="p" data-group-id="6348379074-4">(</span><span class="ss">:test_store</span><span class="p" data-group-id="6348379074-4">)</span><span class="w">
 
 </span><span class="c1"># Wait for condition</span><span class="w">
-</span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">wait_until</span><span class="p" data-group-id="4773912088-5">(</span><span class="k" data-group-id="4773912088-6">fn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">system_ready?</span><span class="p" data-group-id="4773912088-7">(</span><span class="p" data-group-id="4773912088-7">)</span><span class="w"> </span><span class="k" data-group-id="4773912088-6">end</span><span class="p" data-group-id="4773912088-5">)</span></code></pre><h2 id="test-data-management" class="section-heading"><a href="#test-data-management" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Test Data Management</span></h2><h3 id="temporary-directories" class="section-heading"><a href="#temporary-directories" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Temporary Directories</span></h3><p>Tests use temporary directories for data storage:</p><ul><li>Pattern: <code class="inline">/tmp/exesdb_test_{store_id}</code></li><li>Automatic cleanup after test completion</li><li>Isolated per store to prevent conflicts</li></ul><h3 id="port-management" class="section-heading"><a href="#port-management" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Port Management</span></h3><p>Integration tests use dynamic port allocation:</p><ul><li>Base ports: 2113 (TCP), 2114 (HTTP)</li><li>Random offset added to prevent conflicts</li><li>Each test store gets unique ports</li></ul><h2 id="troubleshooting-tests" class="section-heading"><a href="#troubleshooting-tests" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Troubleshooting Tests</span></h2><h3 id="common-issues" class="section-heading"><a href="#common-issues" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Common Issues</span></h3><ol><li><strong>Port Conflicts</strong>: Ensure ports 2113+ are available</li><li><strong>Disk Space</strong>: Verify <code class="inline">/tmp/</code> has sufficient space</li><li><strong>Permissions</strong>: Check write permissions for test directories</li><li><strong>Dependencies</strong>: Ensure ExESDB v0.4.1 is properly installed</li></ol><h3 id="debugging-tips" class="section-heading"><a href="#debugging-tips" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Debugging Tips</span></h3><pre><code class="makeup bash" translate="no"><span class=""># Run with detailed logging
+</span><span class="nc">IntegrationTestHelper</span><span class="o">.</span><span class="n">wait_until</span><span class="p" data-group-id="6348379074-5">(</span><span class="k" data-group-id="6348379074-6">fn</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">system_ready?</span><span class="p" data-group-id="6348379074-7">(</span><span class="p" data-group-id="6348379074-7">)</span><span class="w"> </span><span class="k" data-group-id="6348379074-6">end</span><span class="p" data-group-id="6348379074-5">)</span></code></pre><h2 id="test-data-management" class="section-heading"><a href="#test-data-management" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Test Data Management</span></h2><h3 id="temporary-directories" class="section-heading"><a href="#temporary-directories" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Temporary Directories</span></h3><p>Tests use temporary directories for data storage:</p><ul><li>Pattern: <code class="inline">/tmp/exesdb_test_{store_id}</code></li><li>Automatic cleanup after test completion</li><li>Isolated per store to prevent conflicts</li></ul><h3 id="port-management" class="section-heading"><a href="#port-management" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Port Management</span></h3><p>Integration tests use dynamic port allocation:</p><ul><li>Base ports: 2113 (TCP), 2114 (HTTP)</li><li>Random offset added to prevent conflicts</li><li>Each test store gets unique ports</li></ul><h2 id="troubleshooting-tests" class="section-heading"><a href="#troubleshooting-tests" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Troubleshooting Tests</span></h2><h3 id="common-issues" class="section-heading"><a href="#common-issues" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Common Issues</span></h3><ol><li><strong>Port Conflicts</strong>: Ensure ports 2113+ are available</li><li><strong>Disk Space</strong>: Verify <code class="inline">/tmp/</code> has sufficient space</li><li><strong>Permissions</strong>: Check write permissions for test directories</li><li><strong>Dependencies</strong>: Ensure ExESDB v0.4.1 is properly installed</li></ol><h3 id="debugging-tips" class="section-heading"><a href="#debugging-tips" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Debugging Tips</span></h3><pre><code class="makeup bash" translate="no"><span class=""># Run with detailed logging
 </span><span class="">mix test --only integration --trace
 </span><span class="">
 </span><span class=""># Check specific test output
@@ -190,11 +190,11 @@ Read Me
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.3.6" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.4.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0">Hex Preview</a>
 
-              (<a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.3.6/show/guides/test-suite.md">current file</a>)
+              (<a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0/show/guides/test-suite.md">current file</a>)
 
           </span>
 
