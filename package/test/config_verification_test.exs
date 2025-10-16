@@ -6,18 +6,20 @@ defmodule ConfigVerificationTest do
 
   # Mock event type mappers for testing
   defmodule TestDirectApp.EventTypeMapper do
-    def to_string(event_type) when is_atom(event_type) do
-      event_type |> Atom.to_string() |> String.replace("Elixir.", "")
+    @behaviour ExESDB.Commanded.EventTypeMapper
+
+    @impl true
+    def to_event_type(event_module) when is_atom(event_module) do
+      event_module |> to_string() |> String.replace("Elixir.", "")
     end
-    def to_string(event_type) when is_binary(event_type), do: event_type
-    def to_atom(event_type) when is_binary(event_type), do: String.to_atom(event_type)
-    def to_atom(event_type) when is_atom(event_type), do: event_type
   end
 
   # Mock event type mapper modules for known apps
   defmodule ReckonAccounts.EventTypeMapper do
-    def to_string(event_type) when is_atom(event_type), do: Atom.to_string(event_type)
-    def to_atom(event_type) when is_binary(event_type), do: String.to_atom(event_type)
+    @behaviour ExESDB.Commanded.EventTypeMapper
+
+    @impl true
+    def to_event_type(event_module) when is_atom(event_module), do: Atom.to_string(event_module)
   end
 
   describe "umbrella app configuration" do

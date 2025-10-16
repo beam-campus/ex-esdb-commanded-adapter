@@ -57,6 +57,13 @@ config :sample_app, SampleApp.CommandedApp,
 config :ex_esdb_gater, :api,
   pub_sub: :sample_app_pubsub
 
+# Configure Ecto for SQLite storage
+config :sample_app, ecto_repos: [SampleApp.Repo]
+
+config :sample_app, SampleApp.Repo,
+  database: Path.expand("priv/sample_app.db"),
+  pool_size: 5
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

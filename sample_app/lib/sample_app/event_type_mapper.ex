@@ -11,11 +11,11 @@ defmodule SampleApp.EventTypeMapper do
 
   @behaviour ExESDB.Commanded.EventTypeMapper
   @impl ExESDB.Commanded.EventTypeMapper
-  def to_event_type(Elixir.SampleApp.Domain.CastVote.EventV1), do: "vote_casted:v1"
-  def to_event_type(Elixir.SampleApp.Domain.ClosePoll.EventV1), do: "poll_closed:v1"
-  def to_event_type(Elixir.SampleApp.Domain.CreatePoll.EventV1), do: "poll_created:v1"
-  def to_event_type(Elixir.SampleApp.Domain.ExpireCountdown.EventV1), do: "countdown_expired:v1"
-  def to_event_type(Elixir.SampleApp.Domain.InitializePoll.EventV1), do: "poll_initialized:v1"
-  def to_event_type(Elixir.SampleApp.Domain.StartExpirationCountdown.EventV1), do: "countdown_started:v1"
+  def to_event_type(Elixir.SampleApp.CastVote.EventV1), do: "vote_casted:v1"
+  def to_event_type(Elixir.SampleApp.ClosePoll.EventV1), do: "poll_closed:v1"
+  def to_event_type(Elixir.SampleApp.CreateAggregate.EventV1), do: "poll_created:v1"
+  def to_event_type(Elixir.SampleApp.ExpireCountdown.EventV1), do: "countdown_expired:v1"
+  def to_event_type(Elixir.SampleApp.InitializePoll.EventV1), do: "poll_initialized:v1"
+  def to_event_type(Elixir.SampleApp.StartExpirationCountdown.EventV1), do: "countdown_started:v1"
   def to_event_type(event_type), do: to_string(event_type)
 end

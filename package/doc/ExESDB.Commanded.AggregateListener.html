@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.4.0">
+    <meta name="project" content="ex_esdb_commanded v0.9.0">
 
 
-    <title>ExESDB.Commanded.AggregateListener — ex_esdb_commanded v0.4.0</title>
+    <title>ExESDB.Commanded.AggregateListener — ex_esdb_commanded v0.9.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.AggregateListener.html" />
 
-    <script defer src="dist/sidebar_items-E45D8F26.js"></script>
+    <script defer src="dist/sidebar_items-15A10F90.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.4.0
+          v0.9.0
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.AggregateListener</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.4.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.9.0)</small>
 
     </h1>
 
@@ -130,6 +130,16 @@ and filters events by stream_id for aggregate transient subscriptions.</p><p>Sim
 
     <div class="summary-row">
       <div class="summary-signature">
+        <a href="#get_pid/2" data-no-tooltip="" translate="no">get_pid(store_id, stream_id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Gets the PID of the AggregateListener for a given store_id and stream_id.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
         <a href="#start/1" data-no-tooltip="" translate="no">start(config)</a>
 
       </div>
@@ -161,7 +171,7 @@ Useful for transient subscriptions where we don't want to crash the caller.</p><
 
     <div class="summary-row">
       <div class="summary-signature">
-        <a href="#swarm_key/1" data-no-tooltip="" translate="no">swarm_key(store_id)</a>
+        <a href="#swarm_key/2" data-no-tooltip="" translate="no">swarm_key(store_id, stream_id)</a>
 
       </div>
 
@@ -239,6 +249,30 @@ Useful for transient subscriptions where we don't want to crash the caller.</p><
 <p>Returns a specification to start this module under a supervisor.</p><p>See <a href="https://hexdocs.pm/elixir/Supervisor.html"><code class="inline">Supervisor</code></a>.</p>
   </section>
 </section>
+<section class="detail" id="get_pid/2">
+
+  <div class="detail-header">
+    <a href="#get_pid/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_pid(store_id, stream_id)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> get_pid(<a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">atom</a>(), <a href="https://hexdocs.pm/elixir/String.html#t:t/0">String.t</a>()) :: <a href="https://hexdocs.pm/elixir/typespecs.html#basic-types">pid</a>() | nil</pre>
+
+      </div>
+
+<p>Gets the PID of the AggregateListener for a given store_id and stream_id.</p>
+  </section>
+</section>
 <section class="detail" id="start/1">
 
   <div class="detail-header">
@@ -312,14 +346,14 @@ Useful for transient subscriptions where we don't want to crash the caller.</p>
 <p>Stops the AggregateListener process.</p>
   </section>
 </section>
-<section class="detail" id="swarm_key/1">
+<section class="detail" id="swarm_key/2">
 
   <div class="detail-header">
-    <a href="#swarm_key/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+    <a href="#swarm_key/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
       <i class="ri-link-m" aria-hidden="true"></i>
     </a>
     <div class="heading-with-actions">
-      <h1 class="signature" translate="no">swarm_key(store_id)</h1>
+      <h1 class="signature" translate="no">swarm_key(store_id, stream_id)</h1>
 
 
     </div>
@@ -338,9 +372,9 @@ Useful for transient subscriptions where we don't want to crash the caller.</p>
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.4.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.9.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.9.0">Hex Preview</a>
 
           </span>
 

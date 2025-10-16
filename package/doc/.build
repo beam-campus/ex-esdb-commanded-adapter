@@ -10,6 +10,8 @@ ExESDB.Commanded.Config.html
 ExESDB.Commanded.EventTypeMapper.html
 ExESDB.Commanded.Mapper.html
 ExESDB.Commanded.Naming.html
+ExESDB.Commanded.ProjectionsRebuilder.html
+ExESDBCommandedAdapter.Telemetry.html
 adr.html
 api-reference.html
 changelog.html
@@ -20,8 +22,8 @@ dist/lato-latin-700-normal-2XVSBPG4.woff2
 dist/lato-latin-ext-400-normal-N27NCBWW.woff2
 dist/lato-latin-ext-700-normal-Q2L5DVMW.woff2
 dist/remixicon-QPNJX265.woff2
-dist/search_data-D9BA667C.js
-dist/sidebar_items-E45D8F26.js
+dist/search_data-5F317FBE.js
+dist/sidebar_items-15A10F90.js
 event-sourcing-with-cqrs.html
 getting-started.html
 index.html

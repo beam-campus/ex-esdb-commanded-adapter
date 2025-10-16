@@ -7,36 +7,36 @@ defmodule SampleApp.Router do
   """
   use Commanded.Commands.Router
 
-  alias SampleApp.Aggregates.Poll
-  alias SampleApp.Domain.InitializePoll
-  alias SampleApp.Domain.CastVote
-  alias SampleApp.Domain.ClosePoll
-  alias SampleApp.Domain.ExpireCountdown
-  alias SampleApp.Domain.StartExpirationCountdown
+  alias SampleApp.Aggregate
+  alias SampleApp.InitializePoll
+  alias SampleApp.CastVote
+  alias SampleApp.ClosePoll
+  alias SampleApp.ExpireCountdown
+  alias SampleApp.StartExpirationCountdown
 
-  # Poll commands - routed to Poll aggregate with wrapper functions
+  # Poll commands - routed to Aggregate with wrapper functions
   dispatch([InitializePoll.CommandV1], 
-    to: Poll, 
+    to: Aggregate, 
     identity: :poll_id,
     function: :execute_initialize_poll)
     
   dispatch([CastVote.CommandV1], 
-    to: Poll, 
+    to: Aggregate, 
     identity: :poll_id,
     function: :execute_cast_vote)
     
   dispatch([ClosePoll.CommandV1], 
-    to: Poll, 
+    to: Aggregate, 
     identity: :poll_id,
     function: :execute_close_poll)
     
   dispatch([ExpireCountdown.CommandV1], 
-    to: Poll, 
+    to: Aggregate, 
     identity: :poll_id,
     function: :execute_expire_countdown)
     
   dispatch([StartExpirationCountdown.CommandV1], 
-    to: Poll, 
+    to: Aggregate, 
     identity: :poll_id,
     function: :execute_start_expiration_countdown)
 end

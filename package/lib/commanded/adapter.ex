@@ -100,30 +100,15 @@ defmodule ExESDB.Commanded.Adapter do
     # Convert Commanded events to ExESDB format
     new_events = Enum.map(events, &Mapper.to_new_event(&1, event_type_mapper))
 
-    Logger.info("ADAPTER: Appending #{length(new_events)} events to stream #{full_stream_id}")
-
-    Logger.info(
-      "ADAPTER: Expected version: #{inspect(expected_version)} - #{inspect(normalized_expected_version)}"
-    )
-
-    # Log event details for debugging
-    for event <- new_events do
-      Logger.info("ADAPTER: Event type: #{event.event_type}, ID: #{event.event_id}")
-    end
-
-    Logger.info("ADAPTER: Appending events to stream '#{full_stream_id}' (ExESDB will publish to :ex_esdb_events PubSub on '#{store}:$all')")
+    Logger.debug("Adapter: Appending #{length(new_events)} events to stream #{full_stream_id}")
 
     # Use normalized expected version
     case API.append_events(store, full_stream_id, normalized_expected_version, new_events) do
-      {:ok, new_version} ->
-        Logger.info(
-          "ADAPTER: Successfully appended events to #{full_stream_id}, new version: #{new_version}"
-        )
-
+      {:ok, _new_version} ->
         :ok
 
       {:error, reason} ->
-        Logger.error("ADAPTER: Failed to append events to #{full_stream_id}: #{inspect(reason)}")
+        Logger.error("Adapter: Failed to append events to #{full_stream_id}: #{inspect(reason)}")
         StreamHelper.map_error(reason)
     end
   end
@@ -150,9 +135,7 @@ defmodule ExESDB.Commanded.Adapter do
       raise "The event type mapper #{inspect(event_type_mapper)} must implement the ExESDB.Commanded.EventTypeMapper behaviour."
     end
 
-    Logger.info(
-      "ADAPTER: child_spec called with application: #{inspect(application)}, extracted otp_app: #{inspect(otp_app)}"
-    )
+    Logger.debug("Adapter: Initializing with application #{inspect(application)}")
 
     adapter_meta = %{
       store_id: store_id,
@@ -164,7 +147,6 @@ defmodule ExESDB.Commanded.Adapter do
       event_type_mapper: event_type_mapper
     }
 
-    Logger.info("ADAPTER: adapter_meta created: #{inspect(adapter_meta)}")
 
     # Start supervisors for managing subscriptions
     child_specs = [
@@ -353,17 +335,11 @@ defmodule ExESDB.Commanded.Adapter do
   def subscribe(adapter_meta, stream) do
     require Logger
 
-    Logger.info(
-      "ADAPTER: subscribe() called for stream: #{inspect(stream)} - using AggregateListener"
-    )
+    Logger.debug("Adapter: Creating subscription for stream #{inspect(stream)}")
 
     if StreamHelper.allowed_stream?(stream) do
-      Logger.info("ADAPTER: Allowing subscription for #{inspect(stream)}")
       create_subscription(adapter_meta, stream)
     else
-      Logger.info("ADAPTER: Creating AggregateListener for individual stream: #{inspect(stream)}")
-
-      # For individual aggregate streams, use AggregateListener with PubSub
       create_aggregate_listener(adapter_meta, stream)
     end
   end
@@ -413,17 +389,11 @@ defmodule ExESDB.Commanded.Adapter do
 
     case AggregateListenerSupervisor.start_listener(listener_config) do
       {:ok, _listener_pid} ->
-        Logger.info(
-          "ADAPTER: Started AggregateListener for stream '#{target_stream_id}' on topic '#{store}:$all'"
-        )
-
+        Logger.debug("Adapter: Started AggregateListener for stream #{target_stream_id}")
         :ok
 
       {:error, reason} ->
-        Logger.error(
-          "ADAPTER: Failed to start AggregateListener for stream '#{target_stream_id}': #{inspect(reason)}"
-        )
-
+        Logger.error("Adapter: Failed to start AggregateListener: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -447,23 +417,12 @@ defmodule ExESDB.Commanded.Adapter do
   def subscribe_to(adapter_meta, stream, subscription_name, subscriber, start_from, _opts) do
     require Logger
 
-    Logger.warning(
-      "ADAPTER: subscribe_to() called for stream: #{inspect(stream)}, subscription: #{subscription_name}"
-    )
+    Logger.debug("Adapter: Creating persistent subscription #{subscription_name} for #{inspect(stream)}")
 
     if StreamHelper.allowed_stream?(stream) do
-      Logger.info(
-        "ADAPTER: Allowing persistent subscription: #{subscription_name} for #{inspect(stream)}"
-      )
-
       do_subscribe_to(adapter_meta, stream, subscription_name, subscriber, start_from)
     else
-      Logger.warning(
-        "ADAPTER: BLOCKING individual stream subscription: #{subscription_name} for #{inspect(stream)} - Use event-type projections instead"
-      )
-
-      # Don't create subscriptions for individual aggregate streams
-      # Let the event-type projection system handle events instead
+      Logger.debug("Adapter: Blocking individual stream subscription #{subscription_name}")
       {:error, :subscription_blocked}
     end
   end
@@ -514,11 +473,26 @@ defmodule ExESDB.Commanded.Adapter do
         end
 
       _ ->
-        Logger.warning(
-          "Unable to unsubscribe - invalid subscription format: #{inspect(subscription)}"
-        )
-
+        Logger.debug("Invalid subscription format for unsubscribe: #{inspect(subscription)}")
         :ok
     end
   end
+
+  @doc """
+  Converts an ExESDB EventRecord to a Commanded RecordedEvent.
+  
+  This function provides public access to the adapter's robust event conversion
+  logic, including proper version handling and metadata parsing.
+  """
+  @spec convert_event_record(ExESDB.Schema.EventRecord.t()) :: Commanded.EventStore.RecordedEvent.t()
+  defdelegate convert_event_record(event_record), to: ExESDB.Commanded.Adapter.EventConverter
+
+  @doc """
+  Converts a list of ExESDB EventRecords to Commanded RecordedEvents.
+  
+  This function provides public access to the adapter's event conversion logic
+  for batch processing of events.
+  """
+  @spec convert_events(list()) :: list(Commanded.EventStore.RecordedEvent.t())
+  defdelegate convert_events(events), to: ExESDB.Commanded.Adapter.EventConverter
 end

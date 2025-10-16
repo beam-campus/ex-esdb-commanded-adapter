@@ -1,8 +1,8 @@
 defmodule SampleApp.Domain.CastVote.CastVoteTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Aggregates.Poll
-  alias SampleApp.Domain.CastVote.{CommandV1, EventV1, MaybeCastVoteV1, CastedToStateV1}
+  alias SampleApp.Aggregate
+  alias SampleApp.Domain.CastVote.{CommandV1, EventV1, MaybeCastVoteV1, CastedToAggregateV1}
   
   describe "CommandV1 validation" do
     test "valid command passes validation" do
@@ -70,7 +70,7 @@ defmodule SampleApp.Domain.CastVote.CastVoteTest do
   
   describe "MaybeCastVoteV1 command handling" do
     setup do
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :active,
         options: [%{id: "option-1", text: "Option 1"}, %{id: "option-2", text: "Option 2"}],
@@ -97,7 +97,7 @@ defmodule SampleApp.Domain.CastVote.CastVoteTest do
     end
     
     test "fails if poll does not exist", %{command: command} do
-      poll = %Poll{poll_id: nil}
+      poll = %Aggregate{poll_id: nil}
 
       result = MaybeCastVoteV1.execute(poll, command)
       
@@ -105,7 +105,7 @@ defmodule SampleApp.Domain.CastVote.CastVoteTest do
     end
     
     test "fails if poll is closed", %{poll: poll, command: command} do
-      closed_poll = %Poll{poll | status: :closed}
+      closed_poll = %Aggregate{poll | status: :closed}
 
       result = MaybeCastVoteV1.execute(closed_poll, command)
       
@@ -136,9 +136,9 @@ defmodule SampleApp.Domain.CastVote.CastVoteTest do
     end
   end
 
-  describe "CastedToStateV1 event application" do
+  describe "CastedToAggregateV1 event application" do
     test "applies vote to poll aggregate" do
-      poll = %Poll{votes: %{}, poll_id: "poll-123"}
+      poll = %Aggregate{votes: %{}, poll_id: "poll-123"}
       event = %EventV1{
         poll_id: "poll-123",
         option_id: "option-1",
@@ -147,7 +147,7 @@ defmodule SampleApp.Domain.CastVote.CastVoteTest do
         version: 1
       }
 
-      updated_poll = CastedToStateV1.apply(poll, event)
+      updated_poll = CastedToAggregateV1.apply(poll, event)
 
       assert updated_poll.votes["voter-456"] == "option-1"
     end

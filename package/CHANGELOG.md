@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2025-01-16
+
+### Added
+
+- **Public Event Conversion API**: Exposed `convert_event_record/1` and `convert_events/1` functions in the main adapter module
+- Public access to the adapter's robust event conversion logic for applications that need direct event conversion
+- Proper documentation and type specs for the new public functions
+
+### Changed
+
+- Event conversion functions are now accessible as public API through `ExESDB.Commanded.Adapter.convert_event_record/1` and `ExESDB.Commanded.Adapter.convert_events/1`
+- Applications can now use the adapter's sophisticated conversion logic instead of maintaining separate conversion functions
+
 ## [0.3.1] - 2025-07-20
 
 ### Changed

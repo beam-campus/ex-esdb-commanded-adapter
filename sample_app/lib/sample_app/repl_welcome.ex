@@ -50,6 +50,18 @@ defmodule SampleApp.REPLWelcome do
     To get started:
       alias SampleApp.VotingREPL, as: Voting
       Voting.help()
+
+    Generate test data:
+      # Quick example data
+      Voting.generate_example_data()       # 5 polls, 10 votes each
+      Voting.generate_example_data(3, 20)  # 3 polls, 20 votes each
+
+      # Load testing data
+      Voting.generate_load_test_data()        # 100 polls, 1000 votes each
+      Voting.generate_load_test_data(50, 500) # 50 polls, 500 votes each
+
+      # Generate various test scenarios
+      Voting.generate_test_scenarios()     # Creates polls in different states
     """
   end
   
@@ -60,7 +72,8 @@ defmodule SampleApp.REPLWelcome do
     quote do
       alias SampleApp.VotingREPL, as: Voting
       alias SampleApp.CommandedApp
-      alias SampleApp.Aggregates.Poll
+      alias SampleApp.Aggregate
+      alias SampleApp.TestDataGenerator, as: TestGen
     end
   end
   

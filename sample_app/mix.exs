@@ -27,6 +27,10 @@ defmodule SampleApp.MixProject do
       {:ex_esdb, path: "../../ex-esdb/package/"},
       {:cachex, "~> 3.6"},
       
+      # Database
+      {:ecto_sqlite3, "~> 0.12"},
+      {:ecto, "~> 3.10"},
+
       # Property-based testing
       {:stream_data, "~> 0.6", only: [:test, :dev]}
     ]

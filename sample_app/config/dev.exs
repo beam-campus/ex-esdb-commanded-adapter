@@ -10,7 +10,7 @@ config :ra,
   logger: true
 
 config :logger, :console,
-  format: "$time ($metadata) [$level] $message\n",
+  format: "$time[$level] $message\n",
   metadata: [:mfa],
   level: :info,
   # Multiple filters to reduce noise from various components
@@ -54,3 +54,7 @@ config :logger,
 
 config :ex_esdb, :logger, level: :debug
 config :ex_esdb_gater, :logger, level: :debug
+
+config :sample_app, SampleApp.Repo,
+  database: Path.expand("tmp/sample_app_dev.db"),
+  pool_size: 5

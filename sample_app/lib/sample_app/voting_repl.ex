@@ -13,35 +13,42 @@ defmodule SampleApp.VotingREPL do
       iex> Voting.results("poll-123")
       iex> Voting.close_poll("poll-123", "admin")
   
-  ## Available Functions
+  ## Write Operations
   
   - `create_poll/3` - Create a new poll
   - `create_poll_with_expiration/4` - Create a poll that expires
   - `vote/3` - Cast a vote on a poll
   - `close_poll/2` - Manually close a poll
-  - `results/1` - Get current poll results (placeholder)
-  - `list_polls/0` - List recent polls created in this session
-  - `help/0` - Show available commands
+  - `start_countdown/2` - Start expiration countdown for a poll
+  - `expire_poll/1` - Manually expire a poll
+  - `bulk_create_polls/1` - Create multiple polls at once
+  - `bulk_vote/1` - Cast multiple votes at once
   
+  ## Read Operations
+  
+  - `results/1` - Get poll results
+  - `list_active_polls/0` - List active polls
+  - `list_closed_polls/0` - List closed polls
+  - `list_all_polls/0` - List all polls
+  - `voter_results/1` - Get voting history for a voter
+  - `poll_details/1` - Get detailed poll information
+  - `compare_poll_summary/1` - Compare poll summary (cache vs DB)
+  - `compare_poll_results/1` - Compare poll results (cache vs DB)
+  - `compare_voter_history/1` - Compare voter history (cache vs DB)
+  
+  ## Session Management
+  
+  - `list_polls/0` - List polls created in this session
+  - `poll_info/1` - Get session info about a poll
+  - `help/0` - Show available commands
   """
   
-  alias SampleApp.CommandedApp
-  alias SampleApp.Domain.InitializePoll.CommandV1, as: InitializePollCommand
-  alias SampleApp.Domain.CastVote.CommandV1, as: CastVoteCommand
-  alias SampleApp.Domain.ClosePoll.CommandV1, as: ClosePollCommand
-  alias SampleApp.Domain.ExpireCountdown.CommandV1, as: ExpireCountdownCommand
-  alias SampleApp.Domain.StartExpirationCountdown.CommandV1, as: StartExpirationCountdownCommand
+  alias SampleApp.VotingREPL.{Reader, Writer}
   
   require Logger
   
-  # Track polls created in this session
-  @polls_table :voting_repl_polls
-  
   def __init__ do
-    # Initialize ETS table for tracking polls if it doesn't exist
-    unless :ets.whereis(@polls_table) != :undefined do
-      :ets.new(@polls_table, [:set, :public, :named_table])
-    end
+    Writer.__init__()
   end
   
   @doc """
@@ -63,8 +70,32 @@ defmodule SampleApp.VotingREPL do
     🗳️  Voting:
       vote(poll_id, option_id, voter_id)
       
-    📊 Information:
-      results(poll_id)              # Get poll results (placeholder)
+    📊 Poll Information (Cache):
+      get_poll_summary_from_cache(poll_id)      # Get poll summary from cache
+      list_all_poll_summaries_from_cache()      # List all poll summaries from cache
+      list_active_polls_from_cache()            # List active polls from cache
+      get_poll_results_from_cache(poll_id)      # Get poll results from cache
+      get_voter_history_from_cache(voter_id)    # Get voter history from cache
+      has_voter_voted_from_cache?(voter_id, poll_id)  # Check if voter voted (cache)
+
+    📊 Poll Information (Database):
+      get_poll_summary_from_db(poll_id)         # Get poll summary from database
+      list_all_poll_summaries_from_db()         # List all poll summaries from database
+      list_active_polls_from_db()               # List active polls from database
+      get_poll_results_from_db(poll_id)         # Get poll results from database
+      get_voter_history_from_db(voter_id)       # Get voter history from database
+      has_voter_voted_from_db?(voter_id, poll_id)    # Check if voter voted (database)
+
+    📊 Storage Comparison:
+      compare_poll_summary(poll_id)       # Compare poll summary between cache and DB
+      compare_poll_results(poll_id)       # Compare poll results between cache and DB
+      compare_voter_history(voter_id)     # Compare voter history between cache and DB
+      compare_all_poll_summaries()        # Compare all poll summaries
+      compare_active_polls()              # Compare active polls list
+      cache_stats()                       # Get cache statistics
+
+    📊 Session Information:
+      results(poll_id)              # Get poll results
       list_polls()                  # List polls from this session
       poll_info(poll_id)            # Get detailed poll information
       
@@ -94,46 +125,8 @@ defmodule SampleApp.VotingREPL do
     :ok
   end
   
-  @doc """
-  Creates a new poll with the given title and options.
-  
-  Returns the poll ID for use with other functions.
-  
-  ## Examples
-  
-      iex> create_poll("Favorite Color?", ["Red", "Blue", "Green"])
-      {:ok, "poll-1234567890"}
-      
-      iex> create_poll("Best Framework?", ["Phoenix", "Rails", "Django"], "alice")
-      {:ok, "poll-1234567891"}
-  """
-  def create_poll(title, options, creator \\ "system") when is_list(options) and length(options) >= 2 do
-    poll_id = generate_poll_id()
-    
-    command = %InitializePollCommand{
-      poll_id: poll_id,
-      title: title,
-      description: "Created via REPL",
-      options: options,
-      created_by: creator,
-      requested_at: DateTime.utc_now(),
-      expires_at: nil
-    }
-    
-    case CommandedApp.dispatch(command) do
-      :ok ->
-        store_poll_info(poll_id, title, options, creator, nil)
-        IO.puts("✅ Poll created successfully!")
-        IO.puts("📋 Poll ID: #{poll_id}")
-        IO.puts("🎯 Title: #{title}")
-        IO.puts("📝 Options: #{format_options_with_ids(options)}")
-        {:ok, poll_id}
-        
-      {:error, reason} ->
-        IO.puts("❌ Failed to create poll: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
+  # Write operations - delegated to Writer module
+  defdelegate create_poll(title, options, creator \\ "system"), to: Writer
   
   @doc """
   Creates a new poll with an expiration time.
@@ -143,35 +136,7 @@ defmodule SampleApp.VotingREPL do
       iex> create_poll_with_expiration("Quick Vote", ["Yes", "No"], 3600)
       {:ok, "poll-1234567892"}
   """
-  def create_poll_with_expiration(title, options, expires_in_seconds, creator \\ "system") do
-    poll_id = generate_poll_id()
-    expires_at = DateTime.add(DateTime.utc_now(), expires_in_seconds)
-    
-    command = %InitializePollCommand{
-      poll_id: poll_id,
-      title: title,
-      description: "Created via REPL with expiration",
-      options: options,
-      created_by: creator,
-      requested_at: DateTime.utc_now(),
-      expires_at: expires_at
-    }
-    
-    case CommandedApp.dispatch(command) do
-      :ok ->
-        store_poll_info(poll_id, title, options, creator, expires_at)
-        IO.puts("✅ Poll with expiration created successfully!")
-        IO.puts("📋 Poll ID: #{poll_id}")
-        IO.puts("🎯 Title: #{title}")
-        IO.puts("📝 Options: #{format_options_with_ids(options)}")
-        IO.puts("⏰ Expires at: #{Calendar.strftime(expires_at, "%Y-%m-%d %H:%M:%S UTC")}")
-        {:ok, poll_id}
-        
-      {:error, reason} ->
-        IO.puts("❌ Failed to create poll: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
+  defdelegate create_poll_with_expiration(title, options, expires_in_seconds, creator \\ "system"), to: Writer
   
   @doc """
   Cast a vote on the specified poll.
@@ -186,40 +151,7 @@ defmodule SampleApp.VotingREPL do
       iex> vote("poll-123", "option_2", "bob")
       :ok
   """
-  def vote(poll_id, option_id, voter_id) do
-    command = %CastVoteCommand{
-      poll_id: poll_id,
-      option_id: option_id,
-      voter_id: voter_id,
-      requested_at: DateTime.utc_now()
-    }
-    
-    case CommandedApp.dispatch(command) do
-      :ok ->
-        IO.puts("✅ Vote cast successfully!")
-        IO.puts("🗳️  Voter: #{voter_id}")
-        IO.puts("📋 Poll: #{poll_id}")
-        IO.puts("🎯 Option: #{option_id}")
-        :ok
-        
-      {:error, :voter_already_voted} ->
-        IO.puts("⚠️  #{voter_id} has already voted on this poll!")
-        {:error, :voter_already_voted}
-        
-      {:error, :invalid_option} ->
-        IO.puts("❌ Invalid option: #{option_id}")
-        IO.puts("💡 Use option_1, option_2, option_3, etc.")
-        {:error, :invalid_option}
-        
-      {:error, :poll_not_found} ->
-        IO.puts("❌ Poll not found: #{poll_id}")
-        {:error, :poll_not_found}
-        
-      {:error, reason} ->
-        IO.puts("❌ Failed to cast vote: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
+  defdelegate vote(poll_id, option_id, voter_id), to: Writer
   
   @doc """
   Manually close a poll.
@@ -232,283 +164,254 @@ defmodule SampleApp.VotingREPL do
       iex> close_poll("poll-123", "admin")
       :ok
   """
-  def close_poll(poll_id, closer \\ "system") do
-    command = %ClosePollCommand{
-      poll_id: poll_id,
-      closed_by: closer,
-      reason: "Closed via REPL",
-      requested_at: DateTime.utc_now()
-    }
-    
-    case CommandedApp.dispatch(command) do
-      :ok ->
-        IO.puts("✅ Poll closed successfully!")
-        IO.puts("📋 Poll: #{poll_id}")
-        IO.puts("👤 Closed by: #{closer}")
-        :ok
-        
-      {:error, reason} ->
-        IO.puts("❌ Failed to close poll: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-  
+  defdelegate close_poll(poll_id, closer \\ "system"), to: Writer
+  defdelegate start_countdown(poll_id, expires_at), to: Writer
+  defdelegate expire_poll(poll_id), to: Writer
+  defdelegate results(poll_id), to: Reader
+
   @doc """
-  Manually start expiration countdown for a poll.
-  
+  Lists all active polls from the database.
+
   ## Examples
-  
-      iex> start_countdown("poll-123", ~U[2024-12-31 23:59:59Z])
+
+      iex> list_active_polls()
       :ok
   """
-  def start_countdown(poll_id, expires_at) do
-    command = %StartExpirationCountdownCommand{
-      poll_id: poll_id,
-      expires_at: expires_at,
-      started_at: DateTime.utc_now()
-    }
-    
-    case CommandedApp.dispatch(command) do
-      :ok ->
-        IO.puts("✅ Expiration countdown started!")
-        IO.puts("📋 Poll: #{poll_id}")
-        IO.puts("⏰ Expires at: #{Calendar.strftime(expires_at, "%Y-%m-%d %H:%M:%S UTC")}")
-        :ok
-        
-      {:error, reason} ->
-        IO.puts("❌ Failed to start countdown: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-  
+  defdelegate list_active_polls(), to: Reader
+
   @doc """
-  Manually expire a poll (simulates timer expiration).
-  
+  Gets poll results for all polls a voter has participated in.
+
   ## Examples
-  
-      iex> expire_poll("poll-123")
+
+      iex> voter_results("alice")
       :ok
   """
-  def expire_poll(poll_id) do
-    command = %ExpireCountdownCommand{
-      poll_id: poll_id,
-      expired_at: DateTime.utc_now()
-    }
-    
-    case CommandedApp.dispatch(command) do
-      :ok ->
-        IO.puts("✅ Poll expired successfully!")
-        IO.puts("📋 Poll: #{poll_id}")
-        IO.puts("⏰ Expired at: #{Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %H:%M:%S UTC")}")
-        :ok
-        
-      {:error, reason} ->
-        IO.puts("❌ Failed to expire poll: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-  
+  defdelegate voter_results(voter_id), to: Reader
+
   @doc """
-  Get poll results (placeholder - would need read-side implementation).
-  
+  Lists results for all closed polls.
+
   ## Examples
-  
-      iex> results("poll-123")
-      "📊 Results for poll-123 (read-side not implemented)"
-  """
-  def results(poll_id) do
-    IO.puts("📊 Results for #{poll_id}")
-    
-    case SampleApp.Projections.get_poll_results(poll_id) do
-      {:ok, results} ->
-        display_poll_results(results)
-        "📊 Results for #{poll_id}"
-        
-      {:error, :not_found} ->
-        IO.puts("❌ Poll not found: #{poll_id}")
-        "❌ Poll not found: #{poll_id}"
-        
-      {:error, reason} ->
-        IO.puts("❌ Error retrieving results: #{inspect(reason)}")
-        "❌ Error retrieving results"
-    end
-  end
-  
-  @doc """
-  Lists polls created in this REPL session.
-  
-  ## Examples
-  
-      iex> list_polls()
+
+      iex> list_closed_polls()
       :ok
   """
-  def list_polls do
-    __init__()
-    
-    polls = :ets.tab2list(@polls_table)
-    
-    if polls == [] do
-      IO.puts("📭 No polls created in this session yet.")
-      IO.puts("💡 Create one with: create_poll(\"Title\", [\"Option1\", \"Option2\"])")
-    else
-      IO.puts("📋 Polls created in this session:")
-      IO.puts("")
-      
-      polls
-      |> Enum.sort_by(fn {_id, info} -> info.created_at end, DateTime)
-      |> Enum.each(fn {poll_id, info} ->
-        status = if info.expires_at && DateTime.compare(DateTime.utc_now(), info.expires_at) == :gt do
-          "⏰ EXPIRED"
-        else
-          "✅ ACTIVE"
-        end
-        
-        IO.puts("  🗳️  #{poll_id}")
-        IO.puts("     📝 #{info.title}")
-        IO.puts("     👤 Created by: #{info.creator}")
-        IO.puts("     📅 Created: #{Calendar.strftime(info.created_at, "%H:%M:%S")}")
-        if info.expires_at do
-          IO.puts("     ⏰ Expires: #{Calendar.strftime(info.expires_at, "%H:%M:%S")}")
-        end
-        IO.puts("     📊 Status: #{status}")
-        IO.puts("     🎯 Options: #{format_options_with_ids(info.options)}")
-        IO.puts("")
-      end)
-    end
-    
+  defdelegate list_closed_polls(), to: Reader
+
+  @doc """
+  Lists all polls from the database.
+
+  ## Examples
+
+      iex> list_all_polls()
+      :ok
+  """
+  defdelegate list_all_polls(), to: Reader
+
+  @doc """
+  Compare poll summary between cache and database.
+
+  ## Examples
+
+      iex> compare_poll_summary("poll-123")
+      :ok
+  """
+  defdelegate compare_poll_summary(poll_id), to: Reader
+
+  @doc """
+  Compare poll results between cache and database.
+
+  ## Examples
+
+      iex> compare_poll_results("poll-123")
+      :ok
+  """
+  defdelegate compare_poll_results(poll_id), to: Reader
+
+  @doc """
+  Compare voter history between cache and database.
+
+  ## Examples
+
+      iex> compare_voter_history("alice")
+      :ok
+  """
+  defdelegate compare_voter_history(voter_id), to: Reader
+
+  @doc """
+  Compare all poll summaries between cache and database.
+
+  ## Examples
+
+      iex> compare_all_poll_summaries()
+      :ok
+  """
+  defdelegate compare_all_poll_summaries(), to: Reader
+
+  @doc """
+  Compare active polls between cache and database.
+
+  ## Examples
+
+      iex> compare_active_polls()
+      :ok
+  """
+  defdelegate compare_active_polls(), to: Reader
+
+  @doc """
+  Get cache statistics including total polls, active polls, etc.
+
+  ## Examples
+
+      iex> cache_stats()
+      :ok
+  """
+  defdelegate cache_stats(), to: Reader
+  defdelegate list_polls(), to: Writer
+  defdelegate poll_info(poll_id), to: Writer
+
+  @doc """
+  Generate example data using predefined poll templates.
+  You can specify how many polls to create and how many votes per poll.
+
+  ## Examples
+      # Create 3 polls with 10 votes each
+      iex> generate_example_data(3, 10)
+      :ok
+  """
+  def generate_example_data(poll_count \\ 5, votes_per_poll \\ 10) do
+    alias SampleApp.TestDataGenerator, as: TestGen
+
+    IO.puts("🚀 Generating example data...")
+    IO.puts("📋 Creating #{poll_count} polls with #{votes_per_poll} votes each")
+
+    result = TestGen.generate_random_polls_with_votes(poll_count, votes_per_poll)
+
+    IO.puts("\n✅ Example data generated successfully!")
+    IO.puts("   #{length(result.poll_ids)} polls created")
+    IO.puts("   #{poll_count * votes_per_poll} total votes cast")
+    IO.puts("\n💡 Try these commands to explore the data:")
+    IO.puts("   list_all_polls()        - See all polls")
+    IO.puts("   list_active_polls()      - See active polls")
+    IO.puts("   results(\"#{hd(result.poll_ids)}\")  - See results for first poll")
     :ok
   end
-  
+
   @doc """
-  Get detailed information about a specific poll.
-  
+  Generate data for load testing.
+  Creates many polls and votes to test system performance.
+
   ## Examples
-  
-      iex> poll_info("poll-123")
+      # Create 100 polls with 1000 votes each
+      iex> generate_load_test_data(100, 1000)
       :ok
   """
-  def poll_info(poll_id) do
-    __init__()
-    
-    case :ets.lookup(@polls_table, poll_id) do
-      [{^poll_id, info}] ->
-        IO.puts("🗳️  Poll Information")
-        IO.puts("=" |> String.duplicate(50))
-        IO.puts("📋 ID: #{poll_id}")
-        IO.puts("📝 Title: #{info.title}")
-        IO.puts("👤 Creator: #{info.creator}")
-        IO.puts("📅 Created: #{Calendar.strftime(info.created_at, "%Y-%m-%d %H:%M:%S UTC")}")
-        
-        if info.expires_at do
-          status = if DateTime.compare(DateTime.utc_now(), info.expires_at) == :gt do
-            "⏰ EXPIRED"
-          else
-            "✅ ACTIVE"
-          end
-          
-          IO.puts("⏰ Expires: #{Calendar.strftime(info.expires_at, "%Y-%m-%d %H:%M:%S UTC")}")
-          IO.puts("📊 Status: #{status}")
-        else
-          IO.puts("📊 Status: ✅ ACTIVE (no expiration)")
-        end
-        
-        IO.puts("🎯 Options:")
-        info.options
-        |> Enum.with_index(1)
-        |> Enum.each(fn {option, index} ->
-          IO.puts("   option_#{index}: #{option}")
-        end)
-        
-        IO.puts("")
-        IO.puts("💡 Use these commands to interact:")
-        IO.puts("   vote(\"#{poll_id}\", \"option_1\", \"your_name\")")
-        IO.puts("   close_poll(\"#{poll_id}\")")
-        :ok
-        
-      [] ->
-        IO.puts("❌ Poll not found: #{poll_id}")
-        IO.puts("💡 Use list_polls() to see available polls")
-        {:error, :not_found}
-    end
+  def generate_load_test_data(poll_count \\ 100, votes_per_poll \\ 1000) do
+    alias SampleApp.TestDataGenerator, as: TestGen
+
+    IO.puts("🏋️ Starting load test data generation...")
+    IO.puts("📊 Target: #{poll_count} polls with #{votes_per_poll} votes each")
+    IO.puts("💭 This might take a while...\n")
+
+    start_time = System.monotonic_time()
+
+    # Generate data in smaller batches to show progress
+    poll_batch_size = 10
+    total_batches = ceil(poll_count / poll_batch_size)
+
+    1..total_batches
+    |> Enum.reduce([], fn _batch_num, acc_poll_ids ->
+      remaining_polls = min(poll_batch_size, poll_count - length(acc_poll_ids))
+      result = TestGen.generate_random_polls_with_votes(remaining_polls, votes_per_poll)
+
+      progress = length(acc_poll_ids) + remaining_polls
+      percentage = Float.round(progress / poll_count * 100, 1)
+      IO.puts("   Progress: #{progress}/#{poll_count} polls (#{percentage}%)")
+
+      acc_poll_ids ++ result.poll_ids
+    end)
+
+    end_time = System.monotonic_time()
+    duration = System.convert_time_unit(end_time - start_time, :native, :millisecond)
+    duration_seconds = duration / 1000
+
+    total_operations = poll_count * (votes_per_poll + 1) # +1 for poll creation
+    ops_per_second = Float.round(total_operations / duration_seconds, 1)
+
+    IO.puts("\n✅ Load test data generation complete!")
+    IO.puts("⏱️  Time taken: #{Float.round(duration_seconds, 1)} seconds")
+    IO.puts("📊 Statistics:")
+    IO.puts("   - #{poll_count} polls created")
+    IO.puts("   - #{poll_count * votes_per_poll} votes cast")
+    IO.puts("   - #{total_operations} total operations")
+    IO.puts("   - #{ops_per_second} operations per second")
+
+    IO.puts("\n💡 Try these commands to verify:")
+    IO.puts("   list_all_polls()         - See all polls")
+    IO.puts("   cache_stats()            - View cache statistics")
+    IO.puts("   compare_active_polls()   - Compare cache vs database")
+    :ok
   end
-  
-  # Private helper functions
-  
-  defp display_poll_results(results) do
-    IO.puts("")
-    IO.puts("📊 Title: #{results.title}")
-    IO.puts("🗳️  Total Votes: #{results.total_votes}")
-    IO.puts("📊 Status: #{format_status(results.status)}")
+
+  @doc """
+  Generate test scenarios that cover all system behaviors.
+  Creates polls in various states (active, closed, expired) with different voting patterns.
+
+  ## Examples
+      iex generate_test_scenarios()
+      :ok
+  """
+  def generate_test_scenarios do
+    alias SampleApp.TestDataGenerator, as: TestGen
+
+    IO.puts("🧪 Generating test scenarios...\n")
+
+    # 1. Active polls with votes
+    IO.puts("1️⃣  Creating active polls with votes...")
+    {:ok, active_poll_1} = create_poll("Active Poll: High Activity", ["Yes", "No", "Maybe"])
+    {:ok, active_poll_2} = create_poll("Active Poll: Low Activity", ["Red", "Blue", "Green"])
     
-    if results.closed_at do
-      IO.puts("⏰ Closed: #{Calendar.strftime(results.closed_at, "%Y-%m-%d %H:%M:%S UTC")}")
-    end
-    
-    if results.winner do
-      IO.puts("🏆 Winner: #{results.winner.option_text} (#{results.winner.vote_count} votes, #{results.winner.percentage}%)")
-    else
-      case results.results do
-        [] -> IO.puts("🤝 No votes yet")
-        [first | rest] ->
-          case Enum.find(rest, fn r -> r.vote_count == first.vote_count end) do
-            nil -> IO.puts("🏆 Winner: #{first.option_text}")
-            _ -> IO.puts("🤝 Tie for first place")
-          end
-      end
-    end
-    
-    IO.puts("")
-    IO.puts("📊 Results:")
-    
-    if results.results == [] do
-      IO.puts("   No votes cast yet.")
-    else
-      results.results
-      |> Enum.each(fn result ->
-        bar = create_progress_bar(result.percentage)
-        IO.puts("   #{result.rank}. #{result.option_text}")
-        IO.puts("      #{result.vote_count} votes (#{result.percentage}%) #{bar}")
-      end)
-    end
-    
-    IO.puts("")
-  end
-  
-  defp format_status(:active), do: "✅ ACTIVE"
-  defp format_status(:closed), do: "🔒 CLOSED"
-  defp format_status(:expired), do: "⏰ EXPIRED"
-  
-  defp create_progress_bar(percentage) when percentage == 0, do: "⬜⬜⬜⬜⬜"
-  defp create_progress_bar(percentage) do
-    filled = round(percentage / 20)
-    empty = 5 - filled
-    String.duplicate("🟩", filled) <> String.duplicate("⬜", empty)
-  end
-  
-  defp generate_poll_id do
-    timestamp = System.system_time(:millisecond)
-    random = :rand.uniform(999)
-    "poll-#{timestamp}-#{random}"
-  end
-  
-  defp store_poll_info(poll_id, title, options, creator, expires_at) do
-    __init__()
-    
-    info = %{
-      title: title,
-      options: options,
-      creator: creator,
-      expires_at: expires_at,
-      created_at: DateTime.utc_now()
-    }
-    
-    :ets.insert(@polls_table, {poll_id, info})
-  end
-  
-  defp format_options_with_ids(options) do
-    options
-    |> Enum.with_index(1)
-    |> Enum.map(fn {option, index} -> "option_#{index}=#{option}" end)
-    |> Enum.join(", ")
+    # Generate some votes for active polls
+    TestGen.generate_random_votes(active_poll_1, 20)
+    TestGen.generate_random_votes(active_poll_2, 5)
+
+    # 2. Expired polls
+    IO.puts("\n2️⃣  Creating expired polls...")
+    {:ok, expired_poll} = create_poll_with_expiration("Expired Poll", ["Option A", "Option B"], 1)
+    Process.sleep(1500) # Wait for expiration
+    TestGen.generate_random_votes(expired_poll, 10)
+
+    # 3. Manually closed polls
+    IO.puts("\n3️⃣  Creating and closing polls...")
+    {:ok, closed_poll} = create_poll("Closed Poll", ["First", "Second", "Third"])
+    TestGen.generate_random_votes(closed_poll, 15)
+    close_poll(closed_poll)
+
+    # 4. Poll with tied results
+    IO.puts("\n4️⃣  Creating poll with tied votes...")
+    {:ok, tied_poll} = create_poll("Tied Poll", ["Left", "Right"])
+    vote(tied_poll, "option_1", "voter1")
+    vote(tied_poll, "option_2", "voter2")
+
+    # 5. Poll with no votes
+    IO.puts("\n5️⃣  Creating poll with no votes...")
+    {:ok, _empty_poll} = create_poll("Empty Poll", ["Choice A", "Choice B"])
+
+    # Summary
+    IO.puts("\n✅ Test scenarios generated successfully!")
+    IO.puts("Created various poll types:")
+    IO.puts("  - Active polls (high and low activity)")
+    IO.puts("  - Expired poll")
+    IO.puts("  - Manually closed poll")
+    IO.puts("  - Poll with tied votes")
+    IO.puts("  - Poll with no votes")
+
+    IO.puts("\n💡 Try these commands to explore:")
+    IO.puts("   list_all_polls()          - See all generated polls")
+    IO.puts("   results(\"#{active_poll_1}\")   - View high activity poll")
+    IO.puts("   results(\"#{tied_poll}\")      - View tied poll results")
+    IO.puts("   compare_poll_results(\"#{closed_poll}\") - Compare closed poll results")
+    :ok
   end
 end

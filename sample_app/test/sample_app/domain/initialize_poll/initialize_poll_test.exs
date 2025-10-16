@@ -1,8 +1,8 @@
 defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Aggregates.Poll
-  alias SampleApp.Domain.InitializePoll.{CommandV1, EventV1, MaybeInitializePollV1, InitializedToStateV1}
+  alias SampleApp.Aggregate
+  alias SampleApp.Domain.InitializePoll.{CommandV1, EventV1, MaybeInitializePollV1, InitializedToAggregateV1}
   
   describe "CommandV1 validation" do
     test "valid command passes validation" do
@@ -112,7 +112,7 @@ defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
   
   describe "MaybeInitializePollV1 command handling" do
     test "successfully initializes poll with valid command" do
-      poll = Poll.new()
+      poll = Aggregate.new()
       command = %CommandV1{
         poll_id: "poll-123",
         title: "Test Poll",
@@ -129,7 +129,7 @@ defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
     end
     
     test "fails to initialize already initialized poll" do
-      poll = %Poll{poll_id: "existing-poll"}
+      poll = %Aggregate{poll_id: "existing-poll"}
       command = %CommandV1{
         poll_id: "poll-123",
         title: "Test Poll", 
@@ -144,7 +144,7 @@ defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
     end
     
     test "fails with invalid command" do
-      poll = Poll.new()
+      poll = Aggregate.new()
       command = %CommandV1{
         poll_id: "poll-123",
         title: nil,  # Invalid - no title
@@ -159,9 +159,9 @@ defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
     end
   end
   
-  describe "InitializedToStateV1 event application" do
+  describe "InitializedToAggregateV1 event application" do
     test "applies event to empty poll aggregate" do
-      poll = Poll.new()
+      poll = Aggregate.new()
       event = %EventV1{
         poll_id: "poll-123",
         title: "Test Poll",
@@ -173,7 +173,7 @@ defmodule SampleApp.Domain.InitializePoll.InitializePollTest do
         version: 1
       }
       
-      updated_poll = InitializedToStateV1.apply(poll, event)
+      updated_poll = InitializedToAggregateV1.apply(poll, event)
       
       assert updated_poll.poll_id == "poll-123"
       assert updated_poll.title == "Test Poll"

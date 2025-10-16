@@ -57,6 +57,9 @@ defmodule ExESDB.Commanded.AggregateListenerSupervisor do
         {:ok, child_pid}
 
       {:error, {:already_started, child_pid}} ->
+        Logger.debug(
+          "AggregateListenerSupervisor: Reusing existing listener #{inspect(child_pid)} for store '#{store_id}'"
+        )
         {:ok, child_pid}
 
       {:error, reason} ->
@@ -68,30 +71,36 @@ defmodule ExESDB.Commanded.AggregateListenerSupervisor do
     end
   end
 
-  defp do_stop_listener(supervisor_pid, store_id) do
-    child_pid = AggregateListener.get_pid(store_id)
+  defp do_stop_listener(supervisor_pid, store_id, stream_id) do
+    child_pid = AggregateListener.get_pid(store_id, stream_id)
 
-    case DynamicSupervisor.terminate_child(supervisor_pid, child_pid) do
-      :ok ->
+    case child_pid do
+      nil ->
         Logger.debug(
-          "AggregateListenerSupervisor: Stopped listener #{inspect(child_pid)} (store: #{store_id})"
+          "AggregateListenerSupervisor: No listener found for store #{store_id}, stream #{stream_id}"
         )
-
         :ok
+        
+      pid when is_pid(pid) ->
+        case DynamicSupervisor.terminate_child(supervisor_pid, pid) do
+          :ok ->
+            Logger.debug(
+              "AggregateListenerSupervisor: Stopped listener #{inspect(pid)} (store: #{store_id}, stream: #{stream_id})"
+            )
+            :ok
 
-      {:error, :not_found} ->
-        Logger.debug(
-          "AggregateListenerSupervisor: Listener #{inspect(child_pid)} not found (store: #{store_id})"
-        )
+          {:error, :not_found} ->
+            Logger.debug(
+              "AggregateListenerSupervisor: Listener #{inspect(pid)} not found (store: #{store_id}, stream: #{stream_id})"
+            )
+            :ok
 
-        :ok
-
-      {:error, reason} ->
-        Logger.warning(
-          "AggregateListenerSupervisor: Failed to stop listener #{inspect(child_pid)}: #{inspect(reason)} (store: #{store_id})"
-        )
-
-        :ok
+          {:error, reason} ->
+            Logger.warning(
+              "AggregateListenerSupervisor: Failed to stop listener #{inspect(pid)}: #{inspect(reason)} (store: #{store_id}, stream: #{stream_id})"
+            )
+            :ok
+        end
     end
   end
 
@@ -121,8 +130,8 @@ defmodule ExESDB.Commanded.AggregateListenerSupervisor do
   @doc """
   Stops a specific AggregateListener.
   """
-  @spec stop_listener(atom(), pid()) :: :ok
-  def stop_listener(store_id, pid) when is_pid(pid) do
+  @spec stop_listener(atom(), String.t()) :: :ok
+  def stop_listener(store_id, stream_id) do
     supervisor_name = swarm_key(store_id)
 
     case Swarm.whereis_name(supervisor_name) do
@@ -134,7 +143,137 @@ defmodule ExESDB.Commanded.AggregateListenerSupervisor do
         :ok
 
       supervisor_pid when is_pid(supervisor_pid) ->
-        do_stop_listener(supervisor_pid, store_id)
+        do_stop_listener(supervisor_pid, store_id, stream_id)
+    end
+  end
+
+  @doc """
+  Stops all listeners for a given stream.
+  """
+  @spec stop_listeners_for_stream(atom(), String.t()) :: :ok
+  def stop_listeners_for_stream(store_id, stream_id) do
+    supervisor_name = swarm_key(store_id)
+
+    case Swarm.whereis_name(supervisor_name) do
+      :undefined ->
+        Logger.warning(
+          "AggregateListenerSupervisor: No supervisor found for store #{store_id} on node #{node()}"
+        )
+
+        :ok
+
+      supervisor_pid when is_pid(supervisor_pid) ->
+        # Get all children and stop those matching the stream_id
+        children = DynamicSupervisor.which_children(supervisor_pid)
+        
+        Enum.each(children, fn {_, child_pid, _, _} ->
+          if is_pid(child_pid) do
+            try do
+              case GenServer.call(child_pid, :stats) do
+                %{stream_id: ^stream_id} ->
+                  DynamicSupervisor.terminate_child(supervisor_pid, child_pid)
+                _ ->
+                  :ok
+              end
+            catch
+              _, _ -> :ok
+            end
+          end
+        end)
+
+        :ok
+    end
+  end
+
+  @doc """
+  Returns statistics for all listeners managed by this supervisor.
+  """
+  @spec stats(atom()) :: map()
+  def stats(store_id) do
+    supervisor_name = swarm_key(store_id)
+
+    case Swarm.whereis_name(supervisor_name) do
+      :undefined ->
+        %{
+          total_listeners: 0, 
+          listeners_by_store: %{},
+          active_streams: []
+        }
+
+      supervisor_pid when is_pid(supervisor_pid) ->
+        children = DynamicSupervisor.which_children(supervisor_pid)
+        active_count = Enum.count(children, fn {_, pid, _, _} -> is_pid(pid) end)
+        
+        stream_ids = 
+          children
+          |> Enum.filter(fn {_, pid, _, _} -> is_pid(pid) end)
+          |> Enum.map(fn {_, pid, _, _} ->
+            try do
+              case GenServer.call(pid, :stats) do
+                %{stream_id: stream_id} -> stream_id
+                _ -> nil
+              end
+            catch
+              _, _ -> nil
+            end
+          end)
+          |> Enum.filter(&(&1 != nil))
+          |> Enum.uniq()
+
+        listeners_by_store = if active_count > 0, do: %{store_id => active_count}, else: %{}
+        
+        %{
+          total_listeners: active_count,
+          listeners_by_store: listeners_by_store,
+          active_streams: stream_ids
+        }
+    end
+  end
+
+  @doc """
+  Lists all active listeners for a store.
+  """
+  @spec list_listeners(atom()) :: [map()]
+  def list_listeners(store_id) do
+    supervisor_name = swarm_key(store_id)
+
+    case Swarm.whereis_name(supervisor_name) do
+      :undefined ->
+        []
+
+      supervisor_pid when is_pid(supervisor_pid) ->
+        children = DynamicSupervisor.which_children(supervisor_pid)
+        
+        children
+        |> Enum.filter(fn {_, pid, _, _} -> is_pid(pid) end)
+        |> Enum.map(fn {_, pid, _, _} ->
+          try do
+            case GenServer.call(pid, :stats) do
+              %{stream_id: stream_id, subscriber: subscriber} ->
+                %{
+                  store_id: store_id,
+                  stream_id: stream_id,
+                  subscriber: subscriber,
+                  listener_pid: pid
+                }
+              _ ->
+                %{
+                  store_id: store_id,
+                  stream_id: "unknown",
+                  subscriber: nil,
+                  listener_pid: pid
+                }
+            end
+          catch
+            _, _ ->
+              %{
+                store_id: store_id,
+                stream_id: "unknown",
+                subscriber: nil,
+                listener_pid: pid
+              }
+          end
+        end)
     end
   end
 end

@@ -2,7 +2,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
   use ExUnit.Case, async: true
   
   alias SampleApp.Domain.ExpireCountdown.{CommandV1, EventV1, MaybeExpireCountdownV1, EventHandlerV1}
-  alias SampleApp.Aggregates.Poll
+  alias SampleApp.Aggregate
   
   describe "ExpireCountdown.CommandV1" do
     test "creates valid command with required fields" do
@@ -75,7 +75,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
     test "executes expire countdown command and creates event" do
       expired_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         expires_at: expired_at
       }
@@ -95,7 +95,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
     test "returns error if poll already expired" do
       expired_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :expired,
         expires_at: expired_at
@@ -113,7 +113,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
       expired_at = DateTime.utc_now()
       incorrect_expired_at = DateTime.add(expired_at, 3600)
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         expires_at: expired_at
       }
@@ -131,7 +131,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
     test "applies countdown expired event to poll" do
       expired_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         status: :active,
@@ -157,7 +157,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
       created_at = DateTime.add(expired_at, -3600)
       expires_at = DateTime.add(expired_at, -60)
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         description: "A test poll",
@@ -200,7 +200,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
     test "poll can apply countdown expired event" do
       expired_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         status: :active,
@@ -213,7 +213,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
         version: 1
       }
       
-      updated_poll = Poll.apply(poll, event)
+      updated_poll = Aggregate.apply(poll, event)
       
       assert updated_poll.status == :expired
       assert updated_poll.expired_at == expired_at
@@ -222,7 +222,7 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
     test "expired poll is considered closed" do
       expired_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         status: :expired,
@@ -230,8 +230,8 @@ defmodule SampleApp.Domain.ExpireCountdownTest do
         votes: %{}
       }
       
-      assert Poll.closed?(poll) == true
-      assert Poll.active?(poll) == false
+      assert Aggregate.closed?(poll) == true
+      assert Aggregate.active?(poll) == false
     end
   end
 end

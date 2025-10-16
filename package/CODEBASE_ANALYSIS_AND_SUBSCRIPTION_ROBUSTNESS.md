@@ -66,6 +66,41 @@
 - **Problem**: Supervisor restarts proxy but ExESDB subscription may be stale
 - **Impact**: Events might be delivered to wrong PID or not at all
 
+## 🔄 Updated Architecture: PubSub-Based Health and Metrics
+
+**IMPORTANT**: We have updated the proposal to use the `:ex_esdb_system` PubSub instance for publishing health and metrics events instead of direct message passing to specific processes. This provides better decoupling and allows multiple actors to subscribe to these events.
+
+### PubSub Event Types
+
+#### Health Events (Published on `:ex_esdb_system`)
+- **Topic**: `"subscription_health:#{store_id}:#{subscription_name}"`
+- **Message Format**: `{:subscription_health, health_event}`
+- **Event Types**:
+  - `:registration_started` - Subscription proxy is attempting registration
+  - `:registration_success` - Subscription successfully registered with ExESDB
+  - `:registration_failed` - Registration attempt failed
+  - `:proxy_started` - Subscription proxy process started
+  - `:proxy_stopped` - Subscription proxy stopped normally
+  - `:proxy_crashed` - Subscription proxy crashed unexpectedly
+  - `:circuit_breaker_opened` - Circuit breaker opened due to failures
+  - `:circuit_breaker_closed` - Circuit breaker closed after recovery
+  - `:event_delivery_success` - Events successfully delivered to subscriber
+  - `:event_delivery_failed` - Event delivery failed
+  - `:periodic_heartbeat` - Regular health check heartbeat
+
+#### Metrics Events (Published on `:ex_esdb_system`)
+- **Topic**: `"subscription_metrics:#{store_id}:#{subscription_name}"`
+- **Message Format**: `{:subscription_metrics, metrics_event}`
+- **Event Types**:
+  - `:registration_attempt` - Registration attempt with result
+  - `:event_delivery` - Event delivery timing and count
+  - `:circuit_breaker_activation` - Circuit breaker state change
+
+#### Store-wide Health Summary (Published on `:ex_esdb_system`)
+- **Topic**: `"health_summary:#{store_id}"`
+- **Message Format**: `{:health_summary, summary_data}`
+- **Published**: Periodically by health tracking actors
+
 ## 💡 Recommended Improvements
 
 ### 1. **Enhanced Cleanup with Process Monitoring**

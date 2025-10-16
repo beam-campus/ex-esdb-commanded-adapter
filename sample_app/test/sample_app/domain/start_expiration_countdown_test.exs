@@ -1,8 +1,8 @@
 defmodule SampleApp.Domain.StartExpirationCountdownTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Domain.StartExpirationCountdown.{CommandV1, EventV1, MaybeStartExpirationCountdownV1, CountdownStartedToStateV1}
-  alias SampleApp.Aggregates.Poll
+  alias SampleApp.Domain.StartExpirationCountdown.{CommandV1, EventV1, MaybeStartExpirationCountdownV1, CountdownStartedToAggregateV1}
+  alias SampleApp.Aggregate
   
   describe "StartExpirationCountdown.CommandV1" do
     test "creates valid command with required fields" do
@@ -112,7 +112,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       expires_at = DateTime.add(DateTime.utc_now(), 3600)
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :active,
         expires_at: expires_at
@@ -136,7 +136,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       expires_at = DateTime.add(DateTime.utc_now(), 3600)
       started_at = DateTime.utc_now()
       
-      poll = %Poll{poll_id: nil}
+      poll = %Aggregate{poll_id: nil}
 
       command = %CommandV1{
         poll_id: "poll-123",
@@ -151,7 +151,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       expires_at = DateTime.add(DateTime.utc_now(), 3600)
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :closed,
         expires_at: expires_at
@@ -170,7 +170,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       expires_at = DateTime.add(DateTime.utc_now(), 3600)
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :expired,
         expires_at: expires_at
@@ -188,7 +188,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
     test "returns error if poll has no expiration" do
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :active,
         expires_at: nil
@@ -207,7 +207,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       expires_at = DateTime.add(DateTime.utc_now(), -3600) # Past time
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :active,
         expires_at: DateTime.add(DateTime.utc_now(), 3600)
@@ -223,12 +223,12 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
     end
   end
   
-  describe "StartExpirationCountdown.CountdownStartedToStateV1" do
+  describe "StartExpirationCountdown.CountdownStartedToAggregateV1" do
     test "applies expiration countdown started event to poll" do
       expires_at = DateTime.add(DateTime.utc_now(), 3600)
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         status: :active,
@@ -242,7 +242,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
         version: 1
       }
       
-      updated_poll = CountdownStartedToStateV1.apply(poll, event)
+      updated_poll = CountdownStartedToAggregateV1.apply(poll, event)
       
       # Currently the event handler is a no-op, so poll should be unchanged
       assert updated_poll == poll
@@ -256,7 +256,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       started_at = DateTime.utc_now()
       created_at = DateTime.add(DateTime.utc_now(), -1800)
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         description: "A test poll",
@@ -278,7 +278,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
         version: 1
       }
       
-      updated_poll = CountdownStartedToStateV1.apply(poll, event)
+      updated_poll = CountdownStartedToAggregateV1.apply(poll, event)
       
       # All fields should be preserved since it's currently a no-op
       assert updated_poll.poll_id == poll.poll_id
@@ -298,7 +298,7 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
       expires_at = DateTime.add(DateTime.utc_now(), 3600)
       started_at = DateTime.utc_now()
       
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         title: "Test Poll",
         status: :active,
@@ -312,9 +312,9 @@ defmodule SampleApp.Domain.StartExpirationCountdownTest do
         version: 1
       }
       
-      updated_poll = Poll.apply(poll, event)
+      updated_poll = Aggregate.apply(poll, event)
       
-      # Since CountdownStartedToStateV1 is a no-op, poll should be unchanged
+      # Since CountdownStartedToAggregateV1 is a no-op, poll should be unchanged
       assert updated_poll == poll
     end
   end
