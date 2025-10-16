@@ -5,16 +5,16 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.38.2">
-    <meta name="project" content="ex_esdb_commanded v0.4.0">
+    <meta name="project" content="ex_esdb_commanded v0.9.0">
 
 
-    <title>ExESDB.Commanded.Adapter — ex_esdb_commanded v0.4.0</title>
+    <title>ExESDB.Commanded.Adapter — ex_esdb_commanded v0.9.0</title>
 
     <link rel="stylesheet" href="dist/html-elixir-KV3YOVJ3.css" />
 
       <link rel="canonical" href="https://hexdocs.pm/ex_esdb_commanded/ExESDB.Commanded.Adapter.html" />
 
-    <script defer src="dist/sidebar_items-E45D8F26.js"></script>
+    <script defer src="dist/sidebar_items-15A10F90.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-DPJLHKSM.js"></script>
 
@@ -39,7 +39,7 @@
 ex_esdb_commanded
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.4.0
+          v0.9.0
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ ex_esdb_commanded
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">ExESDB.Commanded.Adapter</span> 
-      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.4.0)</small>
+      <small class="app-vsn" translate="no">(ex_esdb_commanded v0.9.0)</small>
 
     </h1>
 
@@ -215,6 +215,26 @@ ex_esdb_commanded
       </div>
 
         <div class="summary-synopsis"><p>  Return a child spec defining all processes required by the event store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#convert_event_record/1" data-no-tooltip="" translate="no">convert_event_record(event_record)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Converts an ExESDB EventRecord to a Commanded RecordedEvent.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#convert_events/1" data-no-tooltip="" translate="no">convert_events(events)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Converts a list of ExESDB EventRecords to Commanded RecordedEvents.</p></div>
 
     </div>
 
@@ -638,6 +658,57 @@ ex_esdb_commanded
 <p>  Return a child spec defining all processes required by the event store.</p>
   </section>
 </section>
+<section class="detail" id="convert_event_record/1">
+
+  <div class="detail-header">
+    <a href="#convert_event_record/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">convert_event_record(event_record)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> convert_event_record(ExESDB.Schema.EventRecord.t()) ::
+  <a href="https://hexdocs.pm/commanded/1.4.8/Commanded.EventStore.RecordedEvent.html#t:t/0">Commanded.EventStore.RecordedEvent.t</a>()</pre>
+
+      </div>
+
+<p>Converts an ExESDB EventRecord to a Commanded RecordedEvent.</p><p>This function provides public access to the adapter's robust event conversion
+logic, including proper version handling and metadata parsing.</p>
+  </section>
+</section>
+<section class="detail" id="convert_events/1">
+
+  <div class="detail-header">
+    <a href="#convert_events/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">convert_events(events)</h1>
+
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">@spec</span> convert_events(<a href="https://hexdocs.pm/elixir/typespecs.html#built-in-types">list</a>()) :: [<a href="https://hexdocs.pm/commanded/1.4.8/Commanded.EventStore.RecordedEvent.html#t:t/0">Commanded.EventStore.RecordedEvent.t</a>()]</pre>
+
+      </div>
+
+<p>Converts a list of ExESDB EventRecords to Commanded RecordedEvents.</p><p>This function provides public access to the adapter's event conversion logic
+for batch processing of events.</p>
+  </section>
+</section>
 <section class="detail" id="delete_snapshot/2">
 
   <div class="detail-header">
@@ -838,9 +909,9 @@ ex_esdb_commanded
       <p>
 
           <span class="line">
-            <a href="https://hex.pm/packages/ex_esdb_commanded/0.4.0" class="footer-hex-package">Hex Package</a>
+            <a href="https://hex.pm/packages/ex_esdb_commanded/0.9.0" class="footer-hex-package">Hex Package</a>
 
-            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.4.0">Hex Preview</a>
+            <a href="https://preview.hex.pm/preview/ex_esdb_commanded/0.9.0">Hex Preview</a>
 
           </span>
 

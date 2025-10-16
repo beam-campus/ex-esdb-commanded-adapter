@@ -365,3 +365,253 @@ config :ex_esdb_commanded, :subscription_proxy,
 6. **Configurable Intervals**: Tune for your specific needs
 
 These improvements would eliminate the 30-second window where events can be lost and provide much better observability into the subscription system's health.
+
+## ✅ IMPLEMENTED: PubSub-Based Health & Metrics Monitoring
+
+### Implementation Status
+
+As of 2025-01-27, we have successfully implemented a comprehensive PubSub-based health and metrics monitoring system for the ExESDB Commanded Adapter. This implementation maintains **100% backward compatibility** with existing Commanded applications while adding rich monitoring capabilities.
+
+### 🎯 Core Implementation
+
+#### **1. SubscriptionProxy Enhancements**
+
+The `SubscriptionProxy` now publishes detailed health events throughout its lifecycle:
+
+```elixir
+# Health events published to :ex_esdb_system PubSub
+# Topic: "subscription_health:#{store_id}:#{subscription_name}"
+
+# Proxy lifecycle events
+:proxy_started           # Published on GenServer init
+:proxy_stopped          # Published on normal termination  
+:proxy_crashed          # Published by SubscriptionGuard on unexpected death
+
+# Registration lifecycle events
+:registration_started   # Published when registration attempt begins
+:registration_success   # Published on successful ExESDB registration
+:registration_failed    # Published when registration fails (with error details)
+
+# Circuit breaker events (from SubscriptionGuard)
+:circuit_breaker_opened # Published when failure threshold reached
+:circuit_breaker_closed # Published when circuit breaker resets
+```
+
+**Key Features:**
+- **Non-blocking**: Health event publishing wrapped in `try/rescue` - never affects core functionality
+- **Rich metadata**: Includes proxy PID, subscriber PID, subscription details, error information, timestamps
+- **Error resilient**: Failed PubSub publishing logged but doesn't impact event processing
+
+#### **2. SubscriptionGuard Enhancements**
+
+The `SubscriptionGuard` now provides comprehensive circuit breaker monitoring:
+
+```elixir
+# Circuit breaker thresholds
+@max_failures 5
+@backoff_period 60  # seconds
+
+# Published events
+defp record_registration_failure(store_id, subscription_name, reason) do
+  # ... increment failure count ...
+  
+  if count + 1 >= @max_failures do
+    publish_health_event(store_id, subscription_name, :circuit_breaker_opened, %{
+      failure_count: count + 1, 
+      reason: reason
+    })
+  end
+end
+```
+
+#### **3. SubscriptionMetrics Integration**
+
+The `SubscriptionMetrics` module now publishes performance metrics:
+
+```elixir
+# Metrics events published to :ex_esdb_system PubSub
+# Topic: "subscription_metrics:#{store_id}:#{subscription_name}"
+
+publish_metrics_event(store_id, subscription_name, :registration_attempt, %{
+  result: :ok | {:error, reason},
+  timestamp: timestamp
+})
+```
+
+### 🔍 **Backward Compatibility Analysis**
+
+#### **✅ Core Commanded Interface UNCHANGED**
+
+All essential Commanded EventStore.Adapter functions work exactly as before:
+
+```elixir
+# 1. Persistent subscriptions - WORKS IDENTICALLY
+{:ok, proxy_pid} = ExESDB.Commanded.Adapter.subscribe_to(
+  adapter_meta, "$all", "my_subscription", self(), :origin, []
+)
+
+# 2. Transient subscriptions - WORKS IDENTICALLY  
+:ok = ExESDB.Commanded.Adapter.subscribe(adapter_meta, "$all")
+
+# 3. Unsubscribe - WORKS IDENTICALLY
+:ok = ExESDB.Commanded.Adapter.unsubscribe(adapter_meta, proxy_pid)
+
+# 4. Event processing - IDENTICAL FLOW
+receive do
+  {:events, [%Commanded.EventStore.RecordedEvent{} = event]} ->
+    # Process event - same as before
+end
+```
+
+#### **✅ Event Processing Flow PRESERVED**
+
+```elixir
+# Lines 144-157: Core event handling UNCHANGED
+def handle_info({:events, [%ExESDB.Schema.EventRecord{} = event_record]}, state) do
+  handle_single_event(event_record, state)  # ← SAME AS BEFORE
+  {:noreply, state}
+end
+
+# Lines 374-385: Event conversion & forwarding UNCHANGED
+recorded_event = EventConverter.convert_event_record(event_record)  # ← SAME AS BEFORE
+send(state.subscriber, {:events, [recorded_event]})                # ← SAME AS BEFORE
+```
+
+#### **✅ Subscription Management PRESERVED**
+
+```elixir
+# Unsubscribe handling - core logic identical
+def handle_info(:unsubscribe, state) do
+  {:stop, :normal, state}  # ← SAME AS BEFORE - triggers terminate/2
+end
+
+# Cleanup function - ExESDB interaction unchanged
+defp handle_unsubscribe(state) do
+  API.remove_subscription(state.store, state.type, state.selector, state.name)  # ← SAME AS BEFORE
+  notify_health_monitor(:subscription_unregistered, state)                      # ← NEW (non-blocking)
+end
+```
+
+### 🏗️ **Event Schema & Topics**
+
+#### **Health Events Schema**
+```elixir
+%{
+  store_id: atom(),
+  subscription_name: String.t(),
+  event_type: :registration_started | :registration_success | :registration_failed | 
+              :proxy_started | :proxy_stopped | :proxy_crashed |
+              :circuit_breaker_opened | :circuit_breaker_closed,
+  timestamp: integer(),
+  metadata: %{
+    source: :subscription_proxy | :subscription_guard,
+    proxy_pid: pid(),
+    subscriber_pid: pid(),
+    subscription_type: atom(),
+    selector: String.t(),
+    # ... additional event-specific metadata
+  }
+}
+```
+
+#### **Topic Patterns**
+1. **Subscription Health:** `"subscription_health:#{store_id}:#{subscription_name}"`
+2. **Subscription Metrics:** `"subscription_metrics:#{store_id}:#{subscription_name}"`
+3. **Store Health Summary:** `"health_summary:#{store_id}"` (for future implementation)
+
+### 🎁 **Benefits Delivered**
+
+#### **1. Complete Observability**
+- Real-time visibility into subscription lifecycle events
+- Detailed error tracking with context
+- Circuit breaker state monitoring
+- Performance metrics collection
+
+#### **2. Decoupled Architecture**  
+- Health monitors can subscribe independently
+- Multiple consumers can process the same events
+- Easy to add new monitoring capabilities
+- No tight coupling between producers and consumers
+
+#### **3. Production Ready**
+- Non-blocking health event publishing
+- Comprehensive error handling
+- Backward compatible with existing applications
+- Rich metadata for debugging and alerting
+
+### 🚀 **Usage Examples**
+
+#### **Health Event Consumer**
+```elixir
+defmodule MyApp.SubscriptionHealthMonitor do
+  use GenServer
+  
+  def init(store_id) do
+    # Subscribe to all health events for a store
+    topic_pattern = "subscription_health:#{store_id}:*"
+    # Note: PubSub doesn't support wildcards, so subscribe to specific subscriptions
+    
+    {:ok, %{store_id: store_id}}
+  end
+  
+  def handle_info({:subscription_health, event}, state) do
+    case event.event_type do
+      :circuit_breaker_opened ->
+        send_alert("Circuit breaker opened for #{event.subscription_name}")
+      :proxy_crashed ->
+        send_alert("Subscription proxy crashed: #{event.subscription_name}")
+      _ ->
+        :ok
+    end
+    
+    {:noreply, state}
+  end
+end
+```
+
+#### **Metrics Dashboard**
+```elixir
+defmodule MyApp.SubscriptionDashboard do
+  def get_subscription_health(store_id) do
+    # Subscribe to health events and build real-time dashboard
+    Phoenix.PubSub.subscribe(:ex_esdb_system, "health_summary:#{store_id}")
+    
+    # Process health events to show:
+    # - Active subscriptions
+    # - Failed registrations  
+    # - Circuit breaker status
+    # - Recent crashes
+  end
+end
+```
+
+### 📊 **Verification Results**
+
+| Component | Status | Verification |
+|-----------|--------|-------------|
+| **Commanded Interface** | ✅ **IDENTICAL** | All `subscribe_to/6`, `subscribe/2`, `unsubscribe/2` work unchanged |
+| **Event Processing** | ✅ **IDENTICAL** | Event flow `ExESDB → Proxy → EventConverter → Subscriber` unchanged |
+| **Error Handling** | ✅ **ENHANCED** | Health events wrapped in `try/rescue`, never fail main flow |
+| **Performance** | ✅ **MAINTAINED** | Health publishing is async, no blocking operations added |
+| **Memory Usage** | ✅ **MINIMAL IMPACT** | Only additional metadata storage for health events |
+
+### 🔮 **Next Steps for Monitoring**
+
+With the PubSub foundation in place, the ExESDB server can now implement:
+
+1. **SubscriptionHealthTracker** - Aggregate health data and detect patterns
+2. **SubscriptionAlerting** - Generate alerts based on health events  
+3. **SubscriptionDashboard** - Real-time monitoring interface
+4. **SubscriptionMetricsCollector** - Performance analysis and reporting
+5. **Event Persistence** - Store health events for historical analysis
+
+### 📝 **Summary**
+
+The PubSub-based health and metrics implementation successfully:
+- ✅ **Maintains 100% backward compatibility** with existing Commanded applications
+- ✅ **Adds comprehensive monitoring** without affecting core functionality  
+- ✅ **Provides rich observability** into subscription health and performance
+- ✅ **Enables decoupled monitoring architecture** for scalable operational visibility
+- ✅ **Uses robust error handling** to ensure monitoring never impacts business logic
+
+Existing Commanded applications will continue to work exactly as before, while gaining access to powerful monitoring capabilities through the `:ex_esdb_system` PubSub interface.

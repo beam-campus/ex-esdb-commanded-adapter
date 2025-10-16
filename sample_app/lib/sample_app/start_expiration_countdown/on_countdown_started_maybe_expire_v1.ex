@@ -1,0 +1,92 @@
+defmodule SampleApp.StartExpirationCountdown.OnCountdownStartedMaybeExpireV1 do
+  @moduledoc """
+  Process manager that listens to countdown start events and schedules poll expiration.
+
+  This process manager:
+  1. Listens for CountdownStarted events
+  2. Schedules a timer to trigger poll expiration at the specified time
+  3. Cancels the timer if the poll is closed or expired before the timer expires
+
+  The "Maybe" in the name indicates that the expiration might not happen if:
+  - The poll is closed before the expiration time
+  - The expiration time is in the past
+  - The timer is cancelled for some other reason
+  """
+
+  use Commanded.ProcessManagers.ProcessManager,
+    application: SampleApp.CommandedApp,
+    name: "on_countdown_started_maybe_expire_v1"
+
+  alias SampleApp.StartExpirationCountdown.EventV1, as: CountdownStartedEvent
+  alias SampleApp.ExpireCountdown.CommandV1, as: ExpireCountdownCommand
+  alias SampleApp.ClosePoll.EventV1, as: PollClosedEvent
+
+  require Logger
+
+  defstruct [
+    :poll_id,
+    :expires_at,
+    :timer_ref
+  ]
+
+  def interested?(%CountdownStartedEvent{poll_id: poll_id}), do: {:start, poll_id}
+  def interested?(%PollClosedEvent{poll_id: poll_id}), do: {:continue, poll_id}
+  def interested?(_event), do: false
+
+  def handle(%__MODULE__{}, %CountdownStartedEvent{} = event, _metadata) do
+    Logger.info("Scheduling expiration for poll #{event.poll_id} at #{event.expires_at}")
+
+    # Schedule expiration timer
+    timer_ref = schedule_expiration(event.poll_id, event.expires_at)
+
+    # Update process state with timer reference
+    %__MODULE__{
+      poll_id: event.poll_id,
+      expires_at: event.expires_at,
+      timer_ref: timer_ref
+    }
+  end
+
+  def handle(%__MODULE__{timer_ref: timer_ref} = state, %PollClosedEvent{}, _metadata) do
+    Logger.info("Poll #{state.poll_id} closed, cancelling expiration timer")
+
+    # Cancel timer since poll was closed
+    if timer_ref, do: Process.cancel_timer(timer_ref)
+
+    {:stop, :normal}
+  end
+
+  def handle(state, _event, _metadata), do: state
+
+  # Called when process manager receives the scheduled expiration message
+  def handle_info({:expire_poll, poll_id}, state) do
+    Logger.info("Expiration time reached for poll #{poll_id}")
+
+    command = %ExpireCountdownCommand{
+      poll_id: poll_id,
+      expired_at: DateTime.utc_now()
+    }
+
+    {:dispatch, command, state}
+  end
+
+  def handle_info(_message, state), do: {:noreply, state}
+
+  defp schedule_expiration(poll_id, expires_at) do
+    now = DateTime.utc_now()
+    delay_ms = DateTime.diff(expires_at, now, :millisecond)
+
+    if delay_ms > 0 do
+      Process.send_after(self(), {:expire_poll, poll_id}, delay_ms)
+    else
+      Logger.warning("Poll #{poll_id} expiration time #{expires_at} is in the past")
+      nil
+    end
+  end
+
+  def error({:error, reason}, _command, _failure_context) do
+    Logger.error("Failed to expire poll: #{inspect(reason)}")
+    # Skip the failed command but allow process to continue
+    {:skip, :continue_pending}
+  end
+end

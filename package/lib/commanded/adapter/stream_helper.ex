@@ -82,8 +82,6 @@ defmodule ExESDB.Commanded.Adapter.StreamHelper do
   def stream_prefix(meta), do: Map.get(meta, :stream_prefix, "")
 
   def pubsub(meta) do
-    IO.puts(" >>>>>>>>>>>>>>>>>>META: #{inspect(meta)} <<<<<<<<<<<<<<<<<<<<<<<<<<<")
-
     meta
     |> Map.get(:pubsub, %{})
   end

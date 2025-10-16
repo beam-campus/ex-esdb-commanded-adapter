@@ -183,21 +183,24 @@ Fields:
 **Trigger**: `PollInitialized` event (when poll has expiration time)
 **Action**: Dispatch `StartExpirationCountdown` command when a poll with expiration is initialized
 
-Location: `start_expiration_countdown/when_poll_initialized_then_start_expiration_countdown.ex`
+Location: `initialize_poll/when_poll_initialized_then_maybe_start_expiration_countdown.ex`
+Module: `SampleApp.InitializePoll.WhenPollInitializedThenMaybeStartExpirationCountdown`
 
 ### 2. Auto-Close Poll Policy  
 **Trigger**: `CountdownExpired` event
 **Action**: Dispatch `ClosePoll` command when countdown expires
 
-Location: `close_poll/when_countdown_expired_then_close_poll.ex`
+Location: `expire_countdown/when_countdown_expired_then_maybe_close_poll.ex`
+Module: `SampleApp.ExpireCountdown.WhenCountdownExpiredThenMaybeClosePoll`
 
 ## File Structure (Following Guidelines)
 
 ```
-lib/sample_app/domain/
+lib/sample_app/
 ├── initialize_poll/
 │   ├── command.ex                    # InitializePoll command
-│   ├── event.ex                      # PollInitialized event  
+│   ├── event.ex                      # PollInitialized event
+│   ├── when_poll_initialized_then_maybe_start_expiration_countdown.ex # Policy
 │   ├── maybe_initialize_poll.ex      # Command handler
 │   ├── initialized_to_state.ex       # Event handler (aggregate update)
 │   ├── initialized_to_summary.ex     # Projection to PollSummary
@@ -216,20 +219,19 @@ lib/sample_app/domain/
 │   ├── maybe_close_poll.ex           # Command handler
 │   ├── closed_to_state.ex            # Event handler
 │   ├── closed_to_summary.ex          # Projection to PollSummary
-│   └── when_countdown_expired_then_close_poll.ex  # Policy for auto-close
 ├── start_expiration_countdown/
 │   ├── command.ex                    # StartExpirationCountdown command
 │   ├── event.ex                      # ExpirationCountdownStarted event
 │   ├── maybe_start_expiration_countdown.ex  # Command handler
 │   ├── countdown_started_to_state.ex # Event handler
 │   ├── countdown_started_to_summary.ex # Projection to PollSummary
-│   └── when_poll_initialized_then_start_expiration_countdown.ex  # Policy
 └── expire_countdown/
     ├── command.ex                    # ExpireCountdown command
     ├── event.ex                      # CountdownExpired event
     ├── maybe_expire_countdown.ex     # Command handler
     ├── expired_to_state.ex           # Event handler
-    └── expired_to_summary.ex         # Projection to PollSummary
+    ├── expired_to_summary.ex         # Projection to PollSummary
+    └── when_countdown_expired_then_maybe_close_poll.ex  # Policy for auto-close
 ```
 
 ## Event Flow Examples
@@ -269,5 +271,5 @@ lib/sample_app/domain/
 - Following the `maybe_<command>.ex` naming convention for command handlers
 - Each event handler updates the aggregate state (`*_to_state.ex`)
 - Projections follow the `<event>_to_<readmodel>.ex` naming pattern  
-- Policies are placed in the slice of the command they trigger
+- Policies are placed in the slice of the event that triggers them
 - Business events have meaningful names (PollCreated, VoteCasted) rather than CRUD names

@@ -1,8 +1,8 @@
 defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
   use ExUnit.Case, async: true
   
-  alias SampleApp.Aggregates.Poll
-  alias SampleApp.Domain.ClosePoll.{CommandV1, EventV1, MaybeClosePollV1, ClosedToStateV1}
+  alias SampleApp.Aggregate
+  alias SampleApp.Domain.ClosePoll.{CommandV1, EventV1, MaybeClosePollV1, ClosedToAggregateV1}
   
   describe "CommandV1 validation" do
     test "valid command passes validation" do
@@ -57,7 +57,7 @@ defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
   
   describe "MaybeClosePollV1 command handling" do
     setup do
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123",
         status: :active,
         created_by: "user-456",
@@ -85,7 +85,7 @@ defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
     end
     
     test "fails if poll does not exist", %{command: command} do
-      poll = %Poll{poll_id: nil}
+      poll = %Aggregate{poll_id: nil}
 
       result = MaybeClosePollV1.execute(poll, command)
       
@@ -93,7 +93,7 @@ defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
     end
     
     test "fails if poll is already closed", %{poll: poll, command: command} do
-      closed_poll = %Poll{poll | status: :closed}
+      closed_poll = %Aggregate{poll | status: :closed}
 
       result = MaybeClosePollV1.execute(closed_poll, command)
       
@@ -101,7 +101,7 @@ defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
     end
     
     test "fails if poll is expired", %{poll: poll, command: command} do
-      expired_poll = %Poll{poll | status: :expired}
+      expired_poll = %Aggregate{poll | status: :expired}
 
       result = MaybeClosePollV1.execute(expired_poll, command)
       
@@ -119,9 +119,9 @@ defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
     end
   end
 
-  describe "ClosedToStateV1 event application" do
+  describe "ClosedToAggregateV1 event application" do
     test "applies closure to poll aggregate" do
-      poll = %Poll{
+      poll = %Aggregate{
         poll_id: "poll-123", 
         status: :active,
         closed_at: nil
@@ -135,7 +135,7 @@ defmodule SampleApp.Domain.ClosePoll.ClosePollTest do
         version: 1
       }
 
-      updated_poll = ClosedToStateV1.apply(poll, event)
+      updated_poll = ClosedToAggregateV1.apply(poll, event)
 
       assert updated_poll.status == :closed
       assert updated_poll.closed_at == event.closed_at

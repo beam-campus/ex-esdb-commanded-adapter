@@ -9,7 +9,7 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxySupervisor do
   multiple stores in umbrella applications.
   """
   
-  use DynamicSupervisor
+  use Supervisor
   require Logger
   
   alias ExESDB.Commanded.Adapter.SubscriptionProxy
@@ -18,38 +18,44 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxySupervisor do
     store_id = Keyword.get(opts, :store_id, :ex_esdb)
     supervisor_name = supervisor_name(store_id)
     
-    DynamicSupervisor.start_link(__MODULE__, store_id, name: supervisor_name)
+    Supervisor.start_link(__MODULE__, store_id, name: supervisor_name)
   end
   
-  @impl DynamicSupervisor
+  @impl Supervisor
   def init(store_id) do
-    Logger.info("SubscriptionProxySupervisor: Started for store #{store_id}")
-    DynamicSupervisor.init(strategy: :one_for_one)
+    Logger.debug("SubscriptionProxySupervisor: Started for store #{store_id}")
+    
+    children = [
+      {DynamicSupervisor, name: proxy_supervisor_name(store_id), strategy: :one_for_one}
+    ]
+    
+    Supervisor.init(children, strategy: :one_for_one)
   end
   
   # Helper function to generate store-specific names
   defp supervisor_name(store_id), do: Module.concat(__MODULE__, store_id)
+  defp proxy_supervisor_name(store_id), do: Module.concat([__MODULE__, store_id, :ProxySupervisor])
   
   @doc """
   Start a supervised SubscriptionProxy.
   """
   def start_proxy(metadata) do
     store_id = Map.get(metadata, :store, :ex_esdb)
-    supervisor_name = supervisor_name(store_id)
+    proxy_sup_name = proxy_supervisor_name(store_id)
     
     child_spec = SubscriptionProxy.child_spec(metadata)
     
-    case DynamicSupervisor.start_child(supervisor_name, child_spec) do
+    case DynamicSupervisor.start_child(proxy_sup_name, child_spec) do
       {:ok, pid} -> 
-        Logger.info("SubscriptionProxySupervisor: Started supervised proxy #{inspect(pid)} (store: #{store_id})")
+        Logger.debug("SubscriptionProxySupervisor: Started proxy #{inspect(pid)}")
         pid
       
       {:error, {:already_started, pid}} -> 
-        Logger.info("SubscriptionProxySupervisor: Proxy already running #{inspect(pid)} (store: #{store_id})")
+        Logger.debug("SubscriptionProxySupervisor: Proxy already running #{inspect(pid)}")
         pid
       
       {:error, reason} -> 
-        Logger.error("SubscriptionProxySupervisor: Failed to start proxy: #{inspect(reason)} (store: #{store_id})")
+        Logger.error("SubscriptionProxySupervisor: Failed to start proxy: #{inspect(reason)}")
         throw({:subscription_proxy_start_failed, reason})
     end
   end
@@ -58,15 +64,15 @@ defmodule ExESDB.Commanded.Adapter.SubscriptionProxySupervisor do
   Stop a supervised SubscriptionProxy.
   """
   def stop_proxy(store_id, pid) when is_pid(pid) do
-    supervisor_name = supervisor_name(store_id)
-    DynamicSupervisor.terminate_child(supervisor_name, pid)
+    proxy_sup_name = proxy_supervisor_name(store_id)
+    DynamicSupervisor.terminate_child(proxy_sup_name, pid)
   end
   
   @doc """
   List all running proxy processes for a specific store.
   """
   def list_proxies(store_id) do
-    supervisor_name = supervisor_name(store_id)
-    DynamicSupervisor.which_children(supervisor_name)
+    proxy_sup_name = proxy_supervisor_name(store_id)
+    DynamicSupervisor.which_children(proxy_sup_name)
   end
 end
